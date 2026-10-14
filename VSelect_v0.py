@@ -49,8 +49,10 @@ def variable_class_definition(
                                          kind='warn', 
                                          on_change=lambda _: variable_button_handler(self, 'flag')
                                         )
-            self.text = mo.ui.text_area(label=f"{textbox_text_boilerplate} {self.title} choice.", 
+            self.text = mo.ui.text_area(label=f"{textbox_text_boilerplate} {self.title} choice.",
                                         rows=4,
+                                        full_width=True,
+                                        on_change=text_state_setter,
                                        )
 
 
@@ -943,20 +945,20 @@ def variable_details():
         1: {'include': "Include", "exclude": "Exclude", "flag": "Flag for Review"},
         2: {'include': "Include As-Is", "exclude": "Exclude Entirely", "flag": "Keep for Bias-Audit Only"},
         3: {'include': "Include As-Is", "exclude": "Exclude (Too Unreliable)", "flag": "Flag for Data-Quality Improvement"},
-        4: {'include': "Include As-Is", "exclude": "Exclude (Too Unreliable)", "flag": "Flag for Data-Quality Improvement"},
+        4: {'include': "Include As-Is", "exclude": "Exclude (Not Fair or Actionable)", "flag": "Flag for Equity & Intervention Review"},
     }
 
     variable_details = {
         'pell': {
             'title': 'Pell Status',
-            'def': 'Whether a student receives a federal Pell Grant. New regulations restrict use of financial-aid data' 
+            'def': 'Whether a student receives a federal Pell Grant. New regulations restrict use of financial-aid data ' 
                    'in predictive modeling.',
             'feedback': {
                 'initial': {
-                    'include': 'Including Pell Status violates current federal guidance and may expose the institution to penalties.'
+                    'include': 'Including Pell Status violates current federal guidance and may expose the institution to penalties. '
                                'Consider aggregate reporting instead of individual-level use.',
                     'exclude': correct,
-                    'flag': 'Flagged',
+                    'flag': 'Reasonable: university lawyers can confirm how the new federal rules apply. Expect "no use for individual students", though totals across groups may still be allowed.',
                 },
                 'final': {
                     'include': "Including Pell Status violates current federal guidance and may expose the institution to penalties. "
@@ -975,7 +977,7 @@ def variable_details():
                     'include': 'EFC is explicitly barred under 2024 Department of Education rules; '
                                'its inclusion would render the model non-compliant.',
                     'exclude': correct, 
-                    'flag': 'Flagged',
+                    'flag': 'Acceptable, but a review adds little here: 2024 federal rules already ban EFC, so excluding it outright is the clearer choice.',
                 },
                 'final': {
                     'include': "EFC is explicitly barred under 2024 Department of Education rules; "
@@ -994,7 +996,7 @@ def variable_details():
                     'include': 'SAI is sensitive financial-aid data with incomplete coverage. Using it risks privacy '
                                'violations and injects missing-data bias.',
                     'exclude': correct,
-                    'flag': 'Flagged',
+                    'flag': 'Sensible: lawyers can rule on the privacy question, and the team can check how many past students even have an SAI on record.',
                 },
                 'final': {
                     'include': "SAI is sensitive financial-aid data with incomplete coverage. "
@@ -1013,7 +1015,7 @@ def variable_details():
                     'include': 'Unmet Need combines multiple restricted data points. '
                                'Including it would contravene policy and amplify socioeconomic bias.',
                     'exclude': correct,
-                    'flag': 'Flagged',
+                    'flag': 'Good instinct: Unmet Need is calculated from several restricted financial fields, so the review should cover all of them, not just the final number.',
                 },
                 'final': {
                     'include': "Unmet Need combines multiple restricted data points. "
@@ -1033,7 +1035,7 @@ def variable_details():
                     'include': 'Merit awards can proxy socioeconomic status and unintentionally disadvantage low-income students. '
                                'Use only with a strong equity justification.',
                     'exclude': correct,
-                    'flag': 'Flagged',
+                    'flag': "Reasonable: merit aid isn't based on need, but the review should check whether award amounts quietly reflect family income.",
                 },
                 'final': {
                     'include': "Merit awards can proxy socioeconomic status and unintentionally disadvantage low-income students. "
@@ -1053,7 +1055,7 @@ def variable_details():
                     'include': 'Pell Plus directly signals Pell participation; individual-level use is restricted. '
                                'Exclude or seek explicit legal clearance.',
                     'exclude': correct,
-                    'flag': 'Flagged',
+                    'flag': 'Sensible: Pell Plus reveals who receives a Pell Grant, so it needs the same legal approval as Pell itself. Keep it out until lawyers sign off.',
                 },
                 'final': {
                     'include': "Pell Plus directly signals Pell participation; individual-level use is restricted. "
@@ -1536,15 +1538,19 @@ def functions(correct, mo, variables_by_task):
         elif choice == 'exclude':
             if task in [1,2]: 
                 insert_text = "🔴 **Exclude** the variable **entirely**."
-            if task in [3, 4]:
-                insert_text = "🔴 **Exclude** the variable **due to unreliability**."    
+            elif task == 3:
+                insert_text = "🔴 **Exclude** the variable **due to unreliability**."
+            elif task == 4:
+                insert_text = "🔴 **Exclude** the variable **as not fair or actionable**."
         elif choice == 'flag': 
             if task==1: 
                 insert_text = "🟠 **Flag** the variable **for Review**."
             elif task == 2: 
                 insert_text = '🟠 **Keep** the variable **for Bias-Audit Only**.'
-            elif task in [3, 4]: 
-                insert_text = '🟠 **Flag** the variable **for Data-Quality Improvement**.'        
+            elif task == 3: 
+                insert_text = '🟠 **Flag** the variable **for Data-Quality Improvement**.'
+            elif task == 4:
+                insert_text = '🟠 **Flag** the variable **for Equity & Intervention Review**.'
         else:
             insert_text = "⚪️ **not yet selected**"
             return f"You have {insert_text} a variable option."
@@ -1618,7 +1624,7 @@ def functions(correct, mo, variables_by_task):
         '''
         corr_text = f"""✅ **No major concerns for:** {', '.join(correct)}""" if len(correct)>0 else ""
         corr_output = mo.md(corr_text)
-        incorr_text = "⚠️ **At least one restricted variable still needs your attention.**" if len(incorrect)>0 else "✅ **Everything looks good in this wave!**"
+        incorr_text = "⚠️ **At least one variable still needs your attention.**" if len(incorrect)>0 else "✅ **Everything looks good in this wave!**"
         incorr_output = mo.md(incorr_text)
         final_output = mo.vstack([incorr_output] + incorrect + [corr_output])
         return final_output
@@ -1675,9 +1681,9 @@ def introduction(mo):
                 "pieces of information should be fed into one. Working with colleagues you have assembled a data dictionary drawn " \
                 "from the university warehouse. The dictionary lists common attributes such as high school grade point averages, " \
                 "standardized test scores, race, gender, residency status, and course loads. It also contains financial indicators " \
-                "like Pell eligibility and Expected Family Contribution. Several context-specific items are included as well."\
-                "Examples are whether a student applied to a regional campus after a main-campus denial, whether a student is a varsity athlete,"\
-                "and the distance between the student’s home address and campus. No raw records are available at this stage of the project;"\
+                "like Pell eligibility and Expected Family Contribution. Several context-specific items are included as well. "\
+                "Examples are whether a student applied to a regional campus after a main-campus denial, whether a student is a varsity athlete, "\
+                "and the distance between the student’s home address and campus. No raw records are available at this stage of the project; "\
                 "only the variable descriptions, their known limitations, and any red-flag notes provided by legal or ethical reviewers."
             ),
 
@@ -1699,45 +1705,6 @@ def introduction(mo):
 
             mo.md("&nbsp;"),
 
-            # # 3) instructions for the table
-            # mo.md("## Task 1 Regulatory Gate"),
-            # mo.md("*For each variable choose **one** action:*"),
-
-            # # 4) centralized table
-            # mo.Html(
-            #     """
-            #     <div style="display:flex; justify-content:center;">
-            #       <table style="border-collapse:separate; border-spacing:0 6px; text-align:center;">
-            #         <thead>
-            #           <tr>
-            #             <th style="padding:0.5rem 1.5rem;">Action</th>
-            #             <th style="padding:0.5rem 1.5rem;">Meaning</th>
-            #           </tr>
-            #         </thead>
-            #         <tbody>
-            #           <tr>
-            #             <td style="padding:0.5rem 1.5rem;"><b>Include</b></td>
-            #             <td style="padding:0.5rem 1.5rem;">
-            #               Use this variable in the predictive model.
-            #             </td>
-            #           </tr>
-            #           <tr>
-            #             <td style="padding:0.5rem 1.5rem;"><b>Exclude</b></td>
-            #             <td style="padding:0.5rem 1.5rem;">
-            #               Remove it from consideration.
-            #             </td>
-            #           </tr>
-            #           <tr>
-            #             <td style="padding:0.5rem 1.5rem;"><b>Flag for Legal / IRB Review</b></td>
-            #             <td style="padding:0.5rem 1.5rem;">
-            #               Put the variable on hold until university counsel (or the IRB) provides guidance.
-            #             </td>
-            #           </tr>
-            #         </tbody>
-            #       </table>
-            #     </div>
-            #     """
-            # ),
         ]
     )
     return
@@ -1999,19 +1966,19 @@ def task_4(mo):
                   <tr>
                     <td style="padding:0.5rem 1.5rem;"><b>Include as-is</b></td>
                     <td style="padding:0.5rem 1.5rem;">
-                      Accept the quality caveats and feed the variable to the model.
+                      Feed it to the model. You're confident it predicts risk fairly and points advisors to a supportive intervention.
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:0.5rem 1.5rem;"><b>Exclude (too unreliable)</b></td>
+                    <td style="padding:0.5rem 1.5rem;"><b>Exclude (not fair or actionable)</b></td>
                     <td style="padding:0.5rem 1.5rem;">
-                      Remove the variable entirely.
+                      Remove it. The risk of unfair treatment outweighs its predictive value, or advisors couldn't act on it.
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:0.5rem 1.5rem;"><b>Flag for Data-Quality Improvement</b></td>
+                    <td style="padding:0.5rem 1.5rem;"><b>Flag for Equity &amp; Intervention Review</b></td>
                     <td style="padding:0.5rem 1.5rem;">
-                      Pause use until stakeholders can standardise collection or transform it into a more reliable proxy.
+                      Hold it until stakeholders confirm it will drive supportive (not punitive) outreach and name a concrete intervention.
                     </td>
                   </tr>
                 </tbody>
@@ -2044,12 +2011,8 @@ def section_separator(mo):
 
 
 @app.cell
-def wrapup_intro(mo, variables_by_task):
-    # ---- Global submit state ----
-    submit_state, set_submit_state = mo.state(False)
-
+def wrapup_intro(variables_by_task):
     # ---- Collect all choices ----
-    # variable_detailsa = [task_1_variable_details, task_2_variable_details, task_3_variable_details, task_4_variable_details]
     all_choices = [variables_by_task[tasknumber]['getter'][var]['state'] 
                    for tasknumber 
                    in variables_by_task 
@@ -2065,33 +2028,43 @@ def wrapup_intro(mo, variables_by_task):
 
 
 @app.cell(hide_code=True)
-def wrapup_summary_table(include_count, mo, variables_by_task):
+def wrapup_summary_table(
+    button_labels_by_task,
+    include_count,
+    mo,
+    variables_by_task,
+):
+    import html
     variable_plural = "variable" if include_count == 1 else "variables"
 
-    grouped_rows = {
-        variables_by_task[task]['header']: [
-            (variables_by_task[task]['getter'][var]['state'].title() if variables_by_task[task]['getter'][var]['state'] else "No Selection", 
-             var.title) 
-            for var in variables_by_task[task]['variables']
-        ]
+    # one row per variable: (group, decision label shown on its button, variable title, justification)
+    brief_rows = [
+        (
+            variables_by_task[task]['header'],
+            button_labels_by_task[task][_g[var]['state']] if _g[var]['state'] else "No Selection",
+            var.title,
+            (_g[var]['text'] or "").strip(),
+        )
         for task in variables_by_task
-    }
+        for _g in [variables_by_task[task]['getter']]
+        for var in variables_by_task[task]['variables']
+    ]
 
-    # build table HTML
-    table_html = "<table style='border-collapse:collapse; width:100%; text-align:left;'>"
-    table_html += "<thead><tr><th>Group (Wave)</th><th>Decision</th><th>Variable</th></tr></thead><tbody>"
+    def brief_table_html(rows):
+        out = "<table style='border-collapse:collapse; width:100%; text-align:left;'>"
+        out += "<thead><tr><th>Group (Wave)</th><th>Decision</th><th>Variable</th><th>Justification</th></tr></thead><tbody>"
+        for group in dict.fromkeys(r[0] for r in rows):
+            out += f"<tr><td colspan='4' style='font-weight:bold; padding-top:10px;'>{html.escape(group)}</td></tr>"
+            for _grp, decision, variable, why in rows:
+                if _grp != group:
+                    continue
+                color = " style='background-color:#e8f5e9;'" if decision.startswith("Include") else ""
+                out += (f"<tr{color}><td></td><td>{html.escape(decision)}</td><td>{html.escape(variable)}</td>"
+                        f"<td>{html.escape(why) or ('—' if decision == 'No Selection' else '<i>No justification yet</i>')}</td></tr>")
+            out += "<tr><td colspan='4' style='height:8px;'></td></tr>"
+        return out + "</tbody></table>"
 
-    for group, rows in grouped_rows.items():
-        # group header row
-        table_html += f"<tr><td colspan='3' style='font-weight:bold; padding-top:10px;'>{group}</td></tr>"
-        # variable rows
-        for decision, variable in rows:
-            color = " style='background-color:#e8f5e9;'" if decision == "Include" else ""
-            table_html += f"<tr{color}><td></td><td>{decision}</td><td>{variable}</td></tr>"
-        # blank line between groups
-        table_html += "<tr><td colspan='3' style='height:8px;'></td></tr>"
-
-    table_html += "</tbody></table>"
+    table_html = brief_table_html(brief_rows)
 
     mo.vstack([
         mo.md("## End-of-Scenario Wrap-Up – Variable-Selection Brief"),
@@ -2101,7 +2074,7 @@ def wrapup_summary_table(include_count, mo, variables_by_task):
     ),
         mo.Html(table_html)
     ])
-    return
+    return brief_rows, brief_table_html, html
 
 
 @app.cell
@@ -2148,23 +2121,100 @@ def final_feedback(
 
 
 @app.cell
-def product_and_reflection(mo):
-    product_textbox = mo.ui.text_area(label="Enter your product notes here", rows=8)
-    learner_reflection_textbox = mo.ui.text_area(label="Please wriet your reflections here", rows=12)
+def brief_inputs(mo):
+    student_name = mo.ui.text(label="Your name", full_width=True)
+    advisor_notes = mo.ui.text_area(label="Notes for advisors and compliance staff (optional)", rows=5, full_width=True)
+    reflection_prompts = [
+        "Which decision was hardest to make, and what made it hard?",
+        "Your model uses the variables you included. Is that enough for advisors to act on? "
+        "What trade-off did you make between usefulness and protecting students?",
+        "After reading the final feedback, which decision would you change, and why?",
+    ]
+    reflections = mo.ui.array([mo.ui.text_area(rows=5, full_width=True) for _ in reflection_prompts])
+    return advisor_notes, reflection_prompts, reflections, student_name
 
+
+@app.cell
+def product(advisor_notes, brief_rows, mo, student_name):
+    _missing_decision = sum(1 for r in brief_rows if r[1] == "No Selection")
+    _missing_why = sum(1 for r in brief_rows if r[1] != "No Selection" and not r[3])
+    _status = (
+        mo.md("✅ **Every variable has a decision and a justification.** Your brief is complete.").callout("success")
+        if not (_missing_decision or _missing_why)
+        else mo.md(
+            f"**Your brief is not complete yet:** {_missing_decision} variable(s) have no decision and "
+            f"{_missing_why} decision(s) have no justification. Use the **Review Wave** buttons above to finish."
+        ).callout("warn")
+    )
     mo.vstack([
-        mo.md("## Placeholder for Product"),
-        mo.Html("<div style='width:100%;'>"),  # force full-width container
-        product_textbox,
-        mo.Html("</div>"),
+        mo.md("## Your Variable Selection Brief"),
+        mo.md(
+            "This is the product advisors and compliance staff will review before any modelling starts. "
+            "It contains every decision and justification from the table above, plus your notes and reflection below. "
+            "Download it at the bottom of the page and submit the file as instructed."
+        ),
+        _status,
+        student_name,
+        advisor_notes,
+    ])
+    return
 
-        mo.md("&nbsp;"),
 
-        mo.md("## Placeholder for Learner Reflection"),
-        mo.Html("<div style='width:100%;'>"),
-        learner_reflection_textbox,
-        mo.Html("</div>"),
-        mo.md("&nbsp;"),
+@app.cell
+def learner_reflection(include_count, mo, reflection_prompts, reflections):
+    mo.vstack(
+        [mo.md("## Learner Reflection"), mo.md(f"*Your model currently uses **{include_count}** variable(s).*")]
+        + [mo.vstack([mo.md(f"**{i}. {q}**"), box]) for i, (q, box) in enumerate(zip(reflection_prompts, reflections), 1)]
+    )
+    return
+
+
+@app.cell
+def download_brief(
+    advisor_notes,
+    brief_rows,
+    brief_table_html,
+    html,
+    include_count,
+    mo,
+    reflection_prompts,
+    reflections,
+    student_name,
+):
+    def _para(text):
+        return html.escape(text.strip()).replace("\n", "<br>") if text.strip() else "<i>(left blank)</i>"
+
+    _name = student_name.value.strip()
+    _doc = f"""<!doctype html>
+    <html lang="en"><head><meta charset="utf-8"><title>Variable Selection Brief</title>
+    <style>
+      body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
+      th, td {{ padding: 4px 8px; vertical-align: top; border-bottom: 1px solid #ddd; }}
+      @media print {{ body {{ margin: 0; }} }}
+    </style></head><body>
+    <h1>Variable Selection Brief</h1>
+    <p><b>Name:</b> {html.escape(_name) or '<i>(not given)</i>'}<br>
+    <b>Scenario:</b> Student Success Analytics, early-warning variable selection<br>
+    <b>Variables included in the model:</b> {include_count}</p>
+    <h2>Decisions and justifications</h2>
+    {brief_table_html(brief_rows)}
+    <h2>Notes for advisors and compliance staff</h2>
+    <p>{_para(advisor_notes.value)}</p>
+    <h2>Learner reflection</h2>
+    {"".join(f"<h3>{i}. {html.escape(q)}</h3><p>{_para(a)}</p>" for i, (q, a) in enumerate(zip(reflection_prompts, reflections.value), 1))}
+    </body></html>"""
+
+    _slug = "".join(c if c.isalnum() else "-" for c in _name.lower()).strip("-")
+    mo.vstack([
+        mo.md("## Download your brief"),
+        mo.md("The file opens in any web browser. To make a PDF, open it and use **Print → Save as PDF**."),
+        mo.download(
+            data=_doc.encode("utf-8"),
+            filename=f"variable-selection-brief{'-' + _slug if _slug else ''}.html",
+            mimetype="text/html",
+            label="Download brief (.html)",
+        ),
+        mo.md("*Nothing is saved online: refreshing or closing this page erases your work, so download before you leave.*"),
     ])
     return
 
