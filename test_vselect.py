@@ -60,6 +60,34 @@ def test_record_decision_passes_a_plain_function_updater():
     assert seen[1]({"pell": ""}) == {"pell": "because"}
 
 
+def test_cards_ready_counts_ever_opened():
+    assert not nb.cards_ready(frozenset({"story", "role"}))
+    assert nb.cards_ready(frozenset({"story", "role", "deliver"}))
+
+
+def test_card_backs_name_no_variables():
+    import re
+    titles = [v["title"].lower() for v in nb.VARIABLES.values()]
+    for c in nb.CARDS.values():
+        named = [t for t in titles if re.search(rf"\b{re.escape(t)}\b", c["back"].lower())]
+        assert not named, (c["title"], named)
+
+
+def test_card_html_shows_one_face():
+    front, back = nb.card_html("role", False), nb.card_html("role", True)
+    assert "Your role" in front and nb.CARDS["role"]["back"] not in front
+    assert nb.CARDS["role"]["back"] in back
+
+
+def test_record_flip_toggles_face_and_remembers_opened():
+    import types
+    flips, opens = [], []
+    nb.record_flip(flips.append, opens.append, "story")
+    assert isinstance(flips[0], types.FunctionType) and isinstance(opens[0], types.FunctionType)
+    assert flips[0](frozenset()) == {"story"} and flips[0](frozenset({"story"})) == frozenset()
+    assert opens[0](frozenset({"story"})) == {"story"}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

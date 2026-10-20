@@ -9,6 +9,12 @@ with app.setup:
 
     BUTTON_KINDS = {"include": "success", "exclude": "danger", "flag": "warn"}
     CHOICE_MARKS = {"include": "🟢", "exclude": "🔴", "flag": "🟠"}
+
+    CARD_STYLE = (
+        "<style>.poee-card>div{height:220px;border-radius:14px;padding:18px;box-sizing:border-box;"
+        "font-size:14px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.12);animation:poee-flip .45s ease}"
+        "@keyframes poee-flip{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}</style>"
+    )
     CHOICES = ("include", "exclude", "flag")
 
     TASKS = {
@@ -35,6 +41,31 @@ with app.setup:
             "header": 'Equity & Actionability Gate',
             "labels": {'include': 'Include As-Is', 'exclude': 'Exclude (Not Fair or Actionable)', 'flag': 'Flag for Equity & Intervention Review'},
             "banner": "**What to do here.** The final wave asks you to decide whether potentially predictive, yet ethically fraught variables belong in the model. Emphasis shifts to Beneficence, Proportionality, and Transparency. You must weigh (a) predictive value against (b) ability to drive a fair, actionable intervention.\n\nFor every variable choose **one** action, then justify it.\n\n| Choice | Meaning |\n|---|---|\n| **Include As-Is** | Feed it to the model. You're confident it predicts risk fairly and points advisors to a supportive intervention. |\n| **Exclude (Not Fair or Actionable)** | Remove it. The risk of unfair treatment outweighs its predictive value, or advisors couldn't act on it. |\n| **Flag for Equity & Intervention Review** | Hold it until stakeholders confirm it will drive supportive (not punitive) outreach and name a concrete intervention. |",
+        },
+    }
+
+
+    CARDS = {
+        'story': {
+            "title": 'The story so far',
+            "icon": '📖',
+            "background": 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+            "back": 'Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the new federal limits on using financial-aid records.',
+            "full": 'The university is a large research institution that competes for students in a crowded higher-education market. Over the past five years the first-to-second-year retention rate has drifted downward, and graduation timelines have lengthened. Senior leadership has asked the Office of the Provost to treat student persistence as a strategic priority rather than a routine metric. An internal mandate now calls for data-informed, proactive outreach so that support staff can offer help long before a student considers leaving. Within the Office of the Provost a small Student Success Analytics group has been established. This team combines institutional researchers, academic advisors, compliance officers, and data engineers. Its first assignment is to create an early warning intelligence tool that flags continuing undergraduates who appear at risk of stopping out or falling behind schedule. Advisors will then contact those students and connect them with tutoring, financial counseling, or mentoring. The analytics group is expected to respect privacy regulations such as FERPA and recent federal guidance that limits the use of individual financial-aid records in automated decision systems. It is also expected to uphold the university commitment to equity and transparency in every technical choice.',
+        },
+        'role': {
+            "title": 'Your role',
+            "icon": '🧑\u200d💻',
+            "background": 'linear-gradient(135deg,#0284c7,#0ea5e9)',
+            "back": "You are the team's data scientist. You won't build the model yet. You decide what goes into it. You have a data dictionary and red-flag notes from legal and ethics reviewers, and no raw records.",
+            "full": 'You serve as the team’s data science specialist. Your immediate task is not to build a model but to decide which pieces of information should be fed into one. Working with colleagues you have assembled a data dictionary drawn from the university warehouse. The dictionary lists common attributes such as high school grade point averages, standardized test scores, race, gender, residency status, and course loads. It also contains financial indicators like Pell eligibility and Expected Family Contribution. Several context-specific items are included as well. Examples are whether a student applied to a regional campus after a main-campus denial, whether a student is a varsity athlete, and the distance between the student’s home address and campus. No raw records are available at this stage of the project; only the variable descriptions, their known limitations, and any red-flag notes provided by legal or ethical reviewers.',
+        },
+        'deliver': {
+            "title": 'What you deliver',
+            "icon": '📋',
+            "background": 'linear-gradient(135deg,#059669,#10b981)',
+            "back": 'A one-page Variable Selection Brief. Every variable is marked include, exclude, or flag, with a short reason tied to privacy, fairness, and usefulness. Advisors and compliance sign it before any modelling starts.',
+            "full": 'Academic advisors need a concise, defensible list of candidate predictors that can drive a predictive model without violating regulations or undermining equitable treatment. Your deliverable for this scenario is a Variable Selection Brief. In one page you will designate each variable as included, excluded, or flagged for additional discussion. For every decision you will provide a short rationale that links back to the goals of privacy protection, fairness, and practical usefulness. Advisors and compliance staff will review and sign this brief before any modelling work proceeds.',
         },
     }
 
@@ -592,15 +623,6 @@ def summary_counts(decisions: dict) -> dict:
     decided = sum(1 for name in VARIABLES if decisions.get(name))
     return {"correct": decided - len(wrong), "harm": harm, "cautious": len(wrong) - harm}
 
-@app.cell
-def _():
-    import marimo as mo                           
-    mo.md(
-        "# Variable selection scenario\n"
-
-    )
-    return (mo,)
-
 @app.function
 def with_entry(mapping: dict, name: str, value) -> dict:
     return {**mapping, name: value}
@@ -645,67 +667,182 @@ def brief_table_html(rows: list[tuple]) -> str:
 
 
 
-@app.cell(hide_code=True)
-def introduction(mo):
-    mo.vstack(
-        [
-            # 1) subtitle
-            mo.md("## The story so far"),
-
-            # 2) “Note to the team”
-            mo.md(
-                "The university is a large research institution that competes for students in a crowded " \
-                "higher-education market. Over the past five years the first-to-second-year retention rate has " \
-                "drifted downward, and graduation timelines have lengthened. Senior leadership has asked the Office of " \
-                "the Provost to treat student persistence as a strategic priority rather than a routine metric. " \
-                "An internal mandate now calls for data-informed, proactive outreach so that support staff can offer " \
-                "help long before a student considers leaving. Within the Office of the Provost a small Student Success Analytics " \
-                "group has been established. This team combines institutional researchers, academic advisors, compliance officers, "
-                "and data engineers. Its first assignment is to create an early warning intelligence tool that flags continuing " \
-                "undergraduates who appear at risk of stopping out or falling behind schedule. Advisors will then contact those " \
-                "students and connect them with tutoring, financial counseling, or mentoring. The analytics group is expected to " \
-                "respect privacy regulations such as FERPA and recent federal guidance that limits the use of individual financial-aid " \
-                "records in automated decision systems. It is also expected to uphold the university commitment to equity and transparency in " \
-                "every technical choice."
-            ),
+@app.function
+def cards_ready(opened: frozenset) -> bool:
+    return set(CARDS) <= set(opened)
 
 
-            mo.md("&nbsp;"),
-
-            mo.md("## Role"),
-
-            # 2) “Note to the team”
-            mo.md(
-                "You serve as the team’s data science specialist. Your immediate task is not to build a model but to decide which " \
-                "pieces of information should be fed into one. Working with colleagues you have assembled a data dictionary drawn " \
-                "from the university warehouse. The dictionary lists common attributes such as high school grade point averages, " \
-                "standardized test scores, race, gender, residency status, and course loads. It also contains financial indicators " \
-                "like Pell eligibility and Expected Family Contribution. Several context-specific items are included as well. "\
-                "Examples are whether a student applied to a regional campus after a main-campus denial, whether a student is a varsity athlete, "\
-                "and the distance between the student’s home address and campus. No raw records are available at this stage of the project; "\
-                "only the variable descriptions, their known limitations, and any red-flag notes provided by legal or ethical reviewers."
-            ),
+@app.function
+def toggled(items: frozenset, item: str) -> frozenset:
+    return frozenset(items ^ {item})
 
 
-            mo.md("&nbsp;"),
+@app.function
+def added(items: frozenset, item: str) -> frozenset:
+    return frozenset(items | {item})
 
 
-            mo.md("## Business Objective & Product"),
-
-            # 2) “Note to the team”
-            mo.md(
-                "Academic advisors need a concise, defensible list of candidate predictors that can drive a predictive model without violating " \
-                "regulations or undermining equitable treatment. Your deliverable for this scenario is a Variable Selection Brief. " \
-                "In one page you will designate each variable as included, excluded, or flagged for additional discussion. " \
-                "For every decision you will provide a short rationale that links back to the goals of privacy protection, fairness, and practical usefulness. " \
-                "Advisors and compliance staff will review and sign this brief before any modelling work proceeds."
-            ),
+@app.function
+def record_flip(set_flipped, set_opened, card_id: str, _value=None) -> None:
+    set_flipped(lambda flipped: toggled(flipped, card_id))
+    set_opened(lambda opened: added(opened, card_id))
 
 
-            mo.md("&nbsp;"),
+@app.function
+def card_html(card_id: str, flipped: bool) -> str:
+    card = CARDS[card_id]
+    if flipped:
+        face = (f"<div style='background:#fff;color:#0f172a;border:1px solid #e2e8f0;'>"
+                f"<b style='display:block;margin-bottom:6px'>{html.escape(card['title'], quote=False)}</b>"
+                f"{html.escape(card['back'], quote=False)}</div>")
+    else:
+        face = (f"<div style='background:{card['background']};color:#fff;text-align:center;"
+                f"display:flex;flex-direction:column;justify-content:center;'>"
+                f"<div style='font-size:42px'>{card['icon']}</div>"
+                f"<div style='font-size:20px;font-weight:700;margin-top:6px'>{html.escape(card['title'], quote=False)}</div>"
+                f"<div style='font-size:12px;opacity:.85;margin-top:4px'>click Flip to open</div></div>")
+    return CARD_STYLE + f"<div class='poee-card'>{face}</div>"
 
-        ]
+
+@app.function
+def prediction_html(prediction: dict) -> str:
+    sections = [("Could predict a student stopping out", "could_predict"), ("Available, but should not be used", "barred")]
+    out = ""
+    for heading, key in sections:
+        items = "".join(
+            f"<li><b>{html.escape(row['variable'].strip())}</b>"
+            + (f" — {html.escape(row['reason'].strip())}" if row.get("reason", "").strip() else "")
+            + "</li>"
+            for row in prediction[key]
+        )
+        out += f"<h4>{heading}</h4><ul>{items}</ul>"
+    return out
+
+
+@app.cell
+def _():
+    import marimo as mo                           
+    mo.md(
+        "# Variable selection scenario\n"
+
     )
+    return (mo,)
+
+@app.cell
+def card_states(mo):
+    get_flipped, set_flipped = mo.state(frozenset())
+    get_opened, set_opened = mo.state(frozenset())
+    get_prediction, set_prediction = mo.state(None)
+    return get_flipped, get_opened, get_prediction, set_flipped, set_opened, set_prediction
+
+
+@app.cell
+def flip_buttons(mo, set_flipped, set_opened):
+    flip_buttons = {
+        card_id: mo.ui.run_button(
+            label="Flip",
+            on_change=functools.partial(record_flip, set_flipped, set_opened, card_id),
+        )
+        for card_id in CARDS
+    }
+    return (flip_buttons,)
+
+
+@app.cell(hide_code=True)
+def flip_cards(flip_buttons, get_flipped, mo):
+    mo.hstack(
+        [
+            mo.vstack([mo.Html(card_html(card_id, card_id in get_flipped())), flip_buttons[card_id]], align="center")
+            for card_id in CARDS
+        ],
+        widths="equal",
+        gap=1,
+    )
+    return
+
+
+@app.cell
+def predict_inputs(mo):
+    def prediction_rows(reason_placeholder):
+        return mo.ui.array([
+            mo.ui.dictionary({
+                "variable": mo.ui.text(placeholder="variable…", full_width=True),
+                "reason": mo.ui.text(placeholder=reason_placeholder, full_width=True),
+            })
+            for _ in range(5)
+        ])
+
+    def rows_view(rows):
+        return mo.vstack([mo.hstack([row["variable"], row["reason"]], widths=[1, 2]) for row in rows.elements])
+
+    could_predict_rows = prediction_rows("why you think so…")
+    barred_rows = prediction_rows("which rule or concern…")
+    lock_button = mo.ui.run_button(label="🔒 Lock my prediction", kind="success")
+    return barred_rows, could_predict_rows, lock_button, rows_view
+
+
+@app.cell
+def lock_prediction(barred_rows, could_predict_rows, lock_button, mo, set_prediction):
+    _ready = prediction_ready(could_predict_rows.value, barred_rows.value)
+    if lock_button.value and _ready:
+        set_prediction({
+            "could_predict": [row for row in could_predict_rows.value if has_variable(row)],
+            "barred": [row for row in barred_rows.value if has_variable(row)],
+        })
+    lock_warning = (
+        mo.callout(mo.md("Add at least one variable to each list."), kind="warn")
+        if lock_button.value and not _ready
+        else ""
+    )
+    return (lock_warning,)
+
+
+@app.cell(hide_code=True)
+def predict(
+    barred_rows,
+    could_predict_rows,
+    get_opened,
+    get_prediction,
+    lock_button,
+    lock_warning,
+    mo,
+    rows_view,
+):
+    mo.stop(not cards_ready(get_opened()), mo.md("*Open all three cards to begin.*"))
+    _header = [
+        mo.md("# Stage 1 · Predict"),
+        mo.md(
+            "Before you see the university's data dictionary, write down from your own knowledge:\n\n"
+            "1. **Variables that could predict a student stopping out**, each with a one-line reason.\n"
+            "2. **Variables the university probably holds but should not use**, each with the rule or concern that stops it.\n\n"
+            "Once you lock your prediction it cannot be changed. You will come back to it at the end."
+        ),
+    ]
+    if get_prediction() is None:
+        _output = mo.vstack(_header + [
+            mo.md("**Variables that could predict a student stopping out**"),
+            rows_view(could_predict_rows),
+            mo.md("**Variables the university probably holds but should not use (and why)**"),
+            rows_view(barred_rows),
+            lock_button,
+            lock_warning,
+        ])
+    else:
+        _output = mo.vstack(_header + [
+            mo.callout(mo.vstack([mo.md("🔒 **Your locked prediction**"), mo.Html(prediction_html(get_prediction()))]), kind="neutral"),
+        ])
+    _output
+    return
+
+
+@app.cell(hide_code=True)
+def briefing(get_prediction, mo):
+    mo.stop(get_prediction() is None)
+    mo.accordion({
+        "Read the full briefing": mo.md(
+            "\n\n".join(f"### {card['title']}\n\n{card['full']}" for card in CARDS.values())
+        )
+    })
     return
 
 
@@ -782,37 +919,75 @@ def views(mo):
 
 
 @app.cell
-def observe_header(mo):
+def observe_header(get_prediction, mo):
+    mo.stop(get_prediction() is None)
     mo.md("# Stage 2 · Observe")
     return
 
 
 @app.cell
-def task_1(controls, get_decisions, get_reasons, get_submitted, task_view):
+def task_1(
+    controls,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
+    mo,
+    task_view,
+):
+    mo.stop(get_prediction() is None)
     task_view(1, get_decisions(), get_reasons(), controls, get_submitted())
     return
 
 
 @app.cell
-def task_2(controls, get_decisions, get_reasons, get_submitted, task_view):
+def task_2(
+    controls,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
+    mo,
+    task_view,
+):
+    mo.stop(get_prediction() is None)
     task_view(2, get_decisions(), get_reasons(), controls, get_submitted())
     return
 
 
 @app.cell
-def task_3(controls, get_decisions, get_reasons, get_submitted, task_view):
+def task_3(
+    controls,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
+    mo,
+    task_view,
+):
+    mo.stop(get_prediction() is None)
     task_view(3, get_decisions(), get_reasons(), controls, get_submitted())
     return
 
 
 @app.cell
-def task_4(controls, get_decisions, get_reasons, get_submitted, task_view):
+def task_4(
+    controls,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
+    mo,
+    task_view,
+):
+    mo.stop(get_prediction() is None)
     task_view(4, get_decisions(), get_reasons(), controls, get_submitted())
     return
 
 
 @app.cell(hide_code=True)
-def wrapup_summary_table(get_decisions, get_reasons, mo):
+def wrapup_summary_table(get_decisions, get_prediction, get_reasons, mo):
+    mo.stop(get_prediction() is None)
     brief_rows = brief_rows_of(get_decisions(), get_reasons())
     include_count = sum(1 for choice in get_decisions().values() if choice == "include")
     variable_plural = "variable" if include_count == 1 else "variables"
@@ -828,7 +1003,8 @@ def wrapup_summary_table(get_decisions, get_reasons, mo):
 
 
 @app.cell
-def review_wave_buttons(mo):
+def review_wave_buttons(get_prediction, mo):
+    mo.stop(get_prediction() is None)
     button_output = []
     for num in range(1, 5):
         temp_md = f"""<a href=#task_{num}>""""""{temp_button}</a>"""
