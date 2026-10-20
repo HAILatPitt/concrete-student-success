@@ -331,4 +331,17 @@ def test_every_wrong_choice_has_consequence():
 
 ## Sources
 
-*(Filled in by Task 7.)*
+*Task 7, checked 2026-10-20 against primary sources. The eCFR returned a bot check, so 34 CFR was read on law.cornell.edu; re-check against the eCFR before release. No 2026 revision of GEN-25-08 was found, but confirm in the ED library before release.*
+
+| Claim in the scenario | Verdict | Now says | Source |
+|---|---|---|---|
+| "Recent federal guidance limits individual financial-aid records in automated decision systems" (story, Task 1 banner, Pell definition) | Partly accurate | Federal law limits **FAFSA data**, and the FTI inside it, to awarding and administering aid and to de-identified research. The school's own aid records fall under FERPA. No rule mentions automated decisions. | [20 U.S.C. 1090(a)(3)](https://www.law.cornell.edu/uscode/text/20/1090); [26 U.S.C. 6103(l)(13)](https://www.law.cornell.edu/uscode/text/26/6103); [GEN-25-08](https://fsapartners.ed.gov/knowledge-center/library/dear-colleague-letters/2025-09-30/guidance-use-federal-tax-information-fti-free-application-federal-student-aid-fafsar-data-and-non-fafsa-data) |
+| "EFC is explicitly barred under 2024 Department of Education rules" | Inaccurate | EFC is FAFSA data, replaced by SAI from 2024–25. Restricted as FAFSA data; no rule bars it by name. | [20 U.S.C. 1087mm](https://www.law.cornell.edu/uscode/text/20/1087mm); [GEN-23-11](https://fsapartners.ed.gov/knowledge-center/library/dear-colleague-letters/2023-08-04/fafsa-simplification-act-changes-implementation-2024-25) |
+| "Including Pell Status violates federal guidance and may expose the institution to penalties" | Partly accurate | The ISIR Pell eligibility flag is FAFSA data; disbursed Pell is school data under FERPA. Penalties attach mainly to FTI misuse. | GEN-25-08, "Types of Information" and "FERPA and the Use of Non-FAFSA or Institutional Data" |
+| Unmet Need "regulatory restrictions likely prohibit its use" | Inaccurate | ED lists unmet need as school data (FERPA). It is built on SAI and may allow SAI to be reverse-calculated. | GEN-25-08 |
+| Pell Plus "likely subject to the same regulatory restrictions" | Inaccurate as stated | An institutional award is school data under FERPA, but it reveals Pell receipt. | GEN-25-08 |
+| FERPA permits internal use by school officials | Accurate (not previously stated) | Allowed for school officials with a legitimate educational interest, under the criteria in the school's annual notice. | [34 CFR 99.31(a)(1)](https://www.law.cornell.edu/cfr/text/34/99.31); [34 CFR 99.7(a)(3)(iii)](https://www.law.cornell.edu/cfr/text/34/99.7) |
+
+**Open interpretation.** Neither the statute nor ED defines whether retention outreach counts as "administering aid". The scenario takes the conservative reading: a model that flags named students is not aid administration.
+
+**Raised for the Task 8 checkpoint.** The approved key marks Unmet Need as Exclude-only on the premise that it is FAFSA-restricted. ED instead treats it as school data. Exclude still rests on equity grounds (it flags students for being poor) and on the risk of revealing SAI, but Flag for legal review is now also defensible. The maintainer decides whether to accept Flag again.

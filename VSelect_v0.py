@@ -22,7 +22,7 @@ with app.setup:
             "heading": 'Task 1 – Regulatory Gate',
             "header": 'Regulatory Gate',
             "labels": {'include': 'Include', 'exclude': 'Exclude', 'flag': 'Flag for Review'},
-            "banner": "**What to do here.** Decide whether each financial-aid variable may be used at all. Federal rules and student-privacy law limit how individual financial-aid records can be used in automated decisions about a student.\n\nFor every variable choose **one** action, then justify it.\n\n| Choice | Meaning |\n|---|---|\n| **Include** | Use this variable in the predictive model. |\n| **Exclude** | Remove it from consideration. |\n| **Flag for Review** | Put the variable on hold until university counsel (or the IRB) provides guidance. |",
+            "banner": "**What to do here.** Decide whether each financial-aid variable may be used at all. Federal law limits FAFSA data, and the IRS tax data inside it, to awarding and administering aid and to research that identifies no one. The school's own aid records fall under FERPA, the student-privacy law.\n\nFor every variable choose **one** action, then justify it.\n\n| Choice | Meaning |\n|---|---|\n| **Include** | Use this variable in the predictive model. |\n| **Exclude** | Remove it from consideration. |\n| **Flag for Review** | Put the variable on hold until university counsel (or the IRB) provides guidance. |",
         },
         2: {
             "heading": 'Task 2 – Protected-Attribute Gate: Fairness and Equity Check',
@@ -81,8 +81,8 @@ with app.setup:
             "title": 'The story so far',
             "icon": '📖',
             "background": 'linear-gradient(135deg,#4f46e5,#7c3aed)',
-            "back": 'Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the new federal limits on using financial-aid records.',
-            "full": 'The university is a large research institution that competes for students in a crowded higher-education market. Over the past five years the first-to-second-year retention rate has drifted downward, and graduation timelines have lengthened. Senior leadership has asked the Office of the Provost to treat student persistence as a strategic priority rather than a routine metric. An internal mandate now calls for data-informed, proactive outreach so that support staff can offer help long before a student considers leaving. Within the Office of the Provost a small Student Success Analytics group has been established. This team combines institutional researchers, academic advisors, compliance officers, and data engineers. Its first assignment is to create an early warning intelligence tool that flags continuing undergraduates who appear at risk of stopping out or falling behind schedule. Advisors will then contact those students and connect them with tutoring, financial counseling, or mentoring. The analytics group is expected to respect privacy regulations such as FERPA and recent federal guidance that limits the use of individual financial-aid records in automated decision systems. It is also expected to uphold the university commitment to equity and transparency in every technical choice.',
+            "back": 'Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the federal limits on using FAFSA data.',
+            "full": 'The university is a large research institution that competes for students in a crowded higher-education market. Over the past five years the first-to-second-year retention rate has drifted downward, and graduation timelines have lengthened. Senior leadership has asked the Office of the Provost to treat student persistence as a strategic priority rather than a routine metric. An internal mandate now calls for data-informed, proactive outreach so that support staff can offer help long before a student considers leaving. Within the Office of the Provost a small Student Success Analytics group has been established. This team combines institutional researchers, academic advisors, compliance officers, and data engineers. Its first assignment is to create an early warning intelligence tool that flags continuing undergraduates who appear at risk of stopping out or falling behind schedule. Advisors will then contact those students and connect them with tutoring, financial counseling, or mentoring. The analytics group is expected to respect privacy regulations such as FERPA and the federal law and Department of Education guidance that limit how FAFSA data may be used. It is also expected to uphold the university commitment to equity and transparency in every technical choice.',
         },
         'role': {
             "title": 'Your role',
@@ -105,14 +105,17 @@ with app.setup:
             "task": 1,
             "title": 'Pell Status',
             "definition": (
-                'Whether a student receives a federal Pell Grant. New regulations restrict use of '
-                'financial-aid data in predictive modeling.'
+                'Whether a student receives a federal Pell Grant. The Pell eligibility flag in the FAFSA '
+                "results is FAFSA data; a record of Pell actually paid is the school's own record."
             ),
             "correct": ['exclude', 'flag'],
             "why": {
                 'include': (
-                    'Including Pell Status violates current federal guidance and may expose the institution '
-                    'to penalties. Consider aggregate reporting instead of individual-level use.'
+                    'If this is the Pell eligibility flag from the FAFSA results, federal law limits FAFSA '
+                    'data to awarding and administering aid and to research that identifies no one, and a '
+                    'model that flags named students for outreach is neither. A record of Pell actually paid '
+                    'falls under FERPA instead, but it is a direct marker of low income, so it needs legal '
+                    'and equity review before any use. Reporting it in aggregate is the safer route.'
                 ),
             },
             "consequence": {},
@@ -121,14 +124,17 @@ with app.setup:
             "task": 1,
             "title": 'Expected Family Contribution (EFC)',
             "definition": (
-                'Amount a family is expected to contribute to education costs (legacy FAFSA metric). '
-                'Regulatory compliance requires excluding this sensitive financial information.'
+                'Amount a family was expected to contribute to education costs, calculated from the '
+                'FAFSA. Replaced by the Student Aid Index from the 2024–25 award year, so only older '
+                'records have it.'
             ),
             "correct": ['exclude'],
             "why": {
                 'include': (
-                    'EFC is explicitly barred under 2024 Department of Education rules; its inclusion would '
-                    'render the model non-compliant.'
+                    'EFC is FAFSA data: federal law limits FAFSA data to awarding and administering aid and '
+                    'to research that identifies no one, and a model that flags named students for outreach '
+                    'is neither. It also stopped existing in 2024–25, so most current students have no value '
+                    'at all.'
                 ),
                 'flag': (
                     'A review adds little here. EFC is derived from the FAFSA and has been retired, so the '
@@ -147,8 +153,10 @@ with app.setup:
             "correct": ['exclude'],
             "why": {
                 'include': (
-                    'SAI is sensitive financial-aid data with incomplete coverage. Using it risks privacy '
-                    'violations and injects missing-data bias.'
+                    'SAI is FAFSA data: federal law limits FAFSA data to awarding and administering aid and '
+                    'to research that identifies no one, and a model that flags named students for outreach '
+                    'is neither. It exists only from 2024–25, so the historical data behind the model would '
+                    'be largely missing.'
                 ),
                 'flag': (
                     'A review adds little here. SAI is derived from the FAFSA and carries the same '
@@ -162,19 +170,20 @@ with app.setup:
             "task": 1,
             "title": 'Unmet Need',
             "definition": (
-                'Gap between the cost of attendance and the student’s available resources. Financial-'
-                'stress indicator, but regulatory restrictions likely prohibit its use in individual-'
-                'level models.'
+                'Gap between the cost of attendance and the student’s available resources, calculated '
+                'from the aid package and the Student Aid Index. A strong financial-stress signal.'
             ),
             "correct": ['exclude'],
             "why": {
                 'include': (
-                    'Unmet Need combines multiple restricted data points. Including it would contravene '
-                    'policy and amplify socioeconomic bias.'
+                    "Unmet Need is the school's own aid record, governed by FERPA, but it is built on the "
+                    'Student Aid Index, and next to cost of attendance and aid amounts it can reveal that '
+                    'FAFSA figure. It also flags students for being poor rather than for anything advisors '
+                    'can change.'
                 ),
                 'flag': (
-                    'A review adds little here. Unmet Need is calculated from FAFSA-derived aid figures, so '
-                    'it carries the same restrictions. Keep it out of the model.'
+                    'Unmet Need leans on FAFSA data and measures financial hardship directly, so a model '
+                    'using it would flag students for being poor. Keep it out of the model.'
                 ),
             },
             "consequence": {},
@@ -200,15 +209,15 @@ with app.setup:
             "task": 1,
             "title": 'Pell Plus',
             "definition": (
-                'University matching funds that complement federal Pell Grants. Financial-aid variables '
-                'like this are likely subject to the same regulatory restrictions as other financial '
-                'data.'
+                "University matching funds paid to Pell Grant recipients. The award is the school's own "
+                'record, but it reveals that the student receives Pell.'
             ),
             "correct": ['exclude', 'flag'],
             "why": {
                 'include': (
-                    'Pell Plus directly signals Pell participation; individual-level use is restricted. '
-                    'Exclude or seek explicit legal clearance.'
+                    'Pell Plus reveals Pell receipt, a direct marker of low income. Using it to flag '
+                    'individual students needs legal and equity review first, and it adds little beyond Pell '
+                    'Status.'
                 ),
             },
             "consequence": {},
