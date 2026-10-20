@@ -82,13 +82,23 @@ with app.setup:
         ".ss-brief{background:var(--wash);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);"
         "padding:16px 22px 18px;font:400 14px/1.6 var(--sans);color:var(--ink)}"
         ".ss-brief p{margin:0 0 10px}"
-        ".ss-brief table{width:100% !important;border-collapse:collapse;margin:6px 0 0;font-size:13.5px;box-shadow:none}"
-        ".ss-brief tr{background:none !important}"
-        ".ss-brief th,.ss-brief td{text-align:left !important;vertical-align:top;padding:7px 10px 7px 0;"
-        "background:none !important;border:0;border-bottom:1px solid var(--rule)}"
+        ".ss-brief table{width:100%;border-collapse:collapse;margin:6px 0 0;font-size:13.5px}"
+        ".ss-brief th,.ss-brief td{text-align:left;vertical-align:top;padding:7px 10px 7px 0;"
+        "border-bottom:1px solid var(--rule)}"
         ".ss-brief th{font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--navy);"
         "border-bottom:2px solid var(--navy)}"
-        ".ss-brief td:first-child{white-space:nowrap;font-weight:600;padding-right:18px}"
+        ".ss-brief td:first-child{white-space:nowrap;padding-right:18px}"
+        ".ss-note{margin:16px 0 0;background:#fff8e6;border-top:2px solid var(--gold);padding:12px 18px;"
+        "font:400 14px/1.55 var(--sans);color:var(--ink)}"
+        ".ss-note.ok{background:#ecfdf5;border-top-color:#15803d}"
+        ".ss-sheet{width:100%;border-collapse:collapse;font:400 13.5px/1.45 var(--sans);color:var(--ink)}"
+        ".ss-sheet th{text-align:left;font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;"
+        "color:var(--navy);border-bottom:2px solid var(--navy);padding:8px 10px 8px 0}"
+        ".ss-sheet td{text-align:left;vertical-align:top;padding:7px 10px 7px 0;border-bottom:1px solid var(--rule)}"
+        ".ss-sheet .grp td{font:600 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--mid);"
+        "padding-top:18px;border-bottom:1px solid var(--navy-dk)}"
+        ".ss-sheet .inc td{background:#ecfdf5}"
+        ".ss-sheet .muted{color:var(--mid);font-style:italic}"
     )
     STAGES = ("Predict", "Observe", "Explain", "Evaluate")
     CHOICES = ("include", "exclude", "flag")
@@ -1021,19 +1031,19 @@ def brief_rows_of(decisions: dict, reasons: dict) -> list[tuple]:
 
 @app.function
 def brief_table_html(rows: list[tuple]) -> str:
-    out = "<table style='border-collapse:collapse; width:100%; text-align:left;'>"
-    out += "<thead><tr><th>Group (Wave)</th><th>Decision</th><th>Variable</th><th>Justification</th></tr></thead><tbody>"
+    out = "<table class='ss-sheet'><tr><th>Variable</th><th>Decision</th><th>Justification</th></tr>"
     for group in dict.fromkeys(r[0] for r in rows):
-        out += f"<tr><td colspan='4' style='font-weight:bold; padding-top:10px;'>{html.escape(group)}</td></tr>"
+        out += f"<tr class='grp'><td colspan='3'>{html.escape(group)}</td></tr>"
         for grp, decision, variable, why in rows:
             if grp != group:
                 continue
-            color = " style='background-color:#e8f5e9;'" if decision.startswith("Include") else ""
-            empty = "—" if decision == "No Selection" else "<i>No justification yet</i>"
-            out += (f"<tr{color}><td></td><td>{html.escape(decision)}</td><td>{html.escape(variable)}</td>"
-                    f"<td>{html.escape(why) or empty}</td></tr>")
-        out += "<tr><td colspan='4' style='height:8px;'></td></tr>"
-    return out + "</tbody></table>"
+            row_class = " class='inc'" if decision.startswith("Include") else ""
+            shown = html.escape(why) if why else "<span class='muted'>none yet</span>"
+            if decision == "No Selection":
+                shown = "—"
+            out += (f"<tr{row_class}><td>{html.escape(variable)}</td><td>{html.escape(decision)}</td>"
+                    f"<td>{shown}</td></tr>")
+    return out + "</table>"
 
 
 
@@ -1079,6 +1089,26 @@ def card_html(card_id: str) -> str:
 def card_slot_style(flipped: bool) -> dict:
     # The face is chosen by custom properties, which inherit into the button's shadow root.
     return {**CARD_SLOT, "--ss-front": "none" if flipped else "flex", "--ss-back": "none" if not flipped else "block"}
+
+
+@app.function
+def bold_html(text: str) -> str:
+    parts = html.escape(text, quote=False).split("**")
+    return "".join(f"<strong>{part}</strong>" if i % 2 else part for i, part in enumerate(parts))
+
+
+@app.function
+def banner_html(task: int) -> str:
+    lines = TASKS[task]["banner"].split("\n")
+    paragraphs = [line for line in lines if line.strip() and not line.startswith("|")]
+    rows = [line.strip("|").split("|") for line in lines if line.startswith("|") and not line.startswith("|---")]
+    head, *body = [[cell.strip() for cell in row] for row in rows]
+    table = (
+        "<table><tr>" + "".join(f"<th>{bold_html(cell)}</th>" for cell in head) + "</tr>"
+        + "".join("<tr>" + "".join(f"<td>{bold_html(cell)}</td>" for cell in row) + "</tr>" for row in body)
+        + "</table>"
+    )
+    return "<div class='ss ss-brief'>" + "".join(f"<p>{bold_html(p)}</p>" for p in paragraphs) + table + "</div>"
 
 
 @app.function
@@ -1253,7 +1283,7 @@ def flip_cards(deliver_card, get_flipped, get_opened, mo, role_card, story_card)
         for card_id, card in (("story", story_card), ("role", role_card), ("deliver", deliver_card))
     ]
     _gate = "" if cards_ready(get_opened()) else mo.Html("<p class='ss ss-gate'>Open all three cards to begin.</p>")
-    mo.vstack([mo.hstack(_slots, justify="space-between"), _gate])
+    mo.vstack([mo.hstack(_slots, justify="space-between", wrap=True, gap=1), _gate])
     return
 
 
@@ -1292,7 +1322,7 @@ def lock_prediction(get_draft, lock_button, mo, set_prediction):
     if lock_button.value and _ready:
         set_prediction({key: text.strip() for key, text in _draft.items()})
     lock_warning = (
-        mo.callout(mo.md("Write something in both boxes before you lock."), kind="warn")
+        mo.Html("<div class='ss ss-note'>Write something in both boxes before you lock.</div>")
         if lock_button.value and not _ready
         else ""
     )
@@ -1404,7 +1434,7 @@ def views(mo):
             [
                 mo.Html(f'<div id="task_{task}"></div>'),
                 mo.Html(f"<h3 class='ss ss-task-title'>{html.escape(TASKS[task]['heading'])}</h3>"),
-                mo.Html(f"<div class='ss ss-brief'>{mo.md(TASKS[task]['banner']).text}</div>"),
+                mo.Html(banner_html(task)),
             ]
             + [variable_view(name, decisions, reasons, controls, submitted) for name in variables_in(task)]
             + [mo.Html('<hr style="border: 1px dashed black; margin-top:2.5rem; margin-bottom:3rem;">')]
@@ -1486,7 +1516,7 @@ def wrapup_summary_table(get_decisions, get_prediction, get_reasons, get_submitt
     mo.vstack([
         mo.md("## End-of-Scenario Wrap-Up – Variable-Selection Brief"),
         mo.md(wrapup_prompt(_include_count, get_submitted())),
-        mo.Html(brief_table_html(brief_rows_of(get_decisions(), get_reasons()))),
+        mo.Html(f"<div class='ss'>{brief_table_html(brief_rows_of(get_decisions(), get_reasons()))}</div>"),
     ])
     return
 
@@ -1532,7 +1562,7 @@ def submit_action(get_decisions, get_explain, mo, set_submitted, submit_button):
     if submit_button.value and _ready:
         set_submitted(True)
     submit_warning = (
-        mo.callout(mo.md("Answer all three reflection questions before you submit."), kind="warn")
+        mo.Html("<div class='ss ss-note'>Answer all three reflection questions before you submit.</div>")
         if submit_button.value and not _ready
         else ""
     )
@@ -1570,20 +1600,20 @@ def explain(
         )
         _output = mo.vstack(_header + [
             mo.Html(
-                f"<div class='ss'><div class='ss-label'><i>·</i><span>Name</span></div>"
+                f"<div class='ss'><div class='ss-label'><i></i><span>Name</span></div>"
                 f"<div class='ss-indent'>{paragraph_html(_fields['name'])}</div>{_answers}"
-                f"<div class='ss-label'><i>·</i><span>Notes for advisors and compliance staff</span></div>"
+                f"<div class='ss-label'><i></i><span>Notes for advisors and compliance staff</span></div>"
                 f"<div class='ss-indent'>{paragraph_html(_fields['notes'])}</div></div>"
             ),
-            mo.callout(mo.md("**Submitted.** Your choices and reflection are locked."), kind="success"),
+            mo.Html("<div class='ss ss-note ok'><strong>Submitted.</strong> Your choices and reflection are locked.</div>"),
         ])
     else:
         _missing = missing_reasons(get_decisions(), get_reasons())
         _reasons_note = (
-            mo.callout(
-                mo.md(f"**{len(_missing)} decision(s) have no justification.** You can still submit, "
-                      "but advisors will read your brief. Use the **Review Wave** buttons above to add them."),
-                kind="warn",
+            mo.Html(
+                f"<div class='ss ss-note'><strong>{len(_missing)} decision(s) have no justification.</strong> "
+                "You can still submit, but advisors will read your brief. Use the <strong>Review Wave</strong> "
+                "buttons above to add them.</div>"
             )
             if _missing
             else ""
@@ -1595,9 +1625,9 @@ def explain(
         )
         _output = mo.vstack(_header + [
             mo.Html(
-                f"<div class='ss'><div class='ss-label'><i>·</i><span>Your name</span></div>"
+                f"<div class='ss'><div class='ss-label'><i></i><span>Your name</span></div>"
                 f"<div class='ss-indent'>{explain_fields['name']}</div>{_questions}"
-                f"<div class='ss-label'><i>·</i><span>Notes for advisors and compliance staff (optional)</span></div>"
+                f"<div class='ss-label'><i></i><span>Notes for advisors and compliance staff (optional)</span></div>"
                 f"<div class='ss-indent'>{explain_fields['notes']}</div></div>"
             ),
             _reasons_note,

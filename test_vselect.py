@@ -176,6 +176,13 @@ def test_reflections_of_reads_in_prompt_order():
     assert nb.reflections_of({"r3": "c", "r1": "a", "r2": "b", "name": "x"}) == ["a", "b", "c"]
 
 
+def test_banner_html_builds_rule_table():
+    out = nb.banner_html(2)
+    assert "<strong>What to do here.</strong>" in out and "**" not in out
+    assert out.count("<tr>") == 4 and "<th>Choice</th>" in out
+    assert "<td><strong>Keep for Bias-Audit Only</strong></td>" in out
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
