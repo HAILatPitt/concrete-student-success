@@ -45,6 +45,28 @@ with app.setup:
     }
 
 
+    EVAL_STYLE = (
+        "<style>.poee-eval{color:#0f172a}"
+        ".poee-eval .sum,.poee-eval .ev{background:#fff;border-radius:12px;padding:16px 20px;margin:14px 0;"
+        "box-shadow:0 2px 8px rgba(0,0,0,.15)}"
+        ".poee-eval .big{font-size:22px;font-weight:700}"
+        ".poee-eval .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0}"
+        ".poee-eval .legend,.poee-eval .chips{font-size:12px;color:#475569;margin-top:6px}"
+        ".poee-eval .chip{display:inline-block;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;"
+        "padding:2px 8px;margin:2px}"
+        ".poee-eval .ev{border-left:5px solid #f59e0b}.poee-eval .ev.harm{border-left-color:#ef4444}"
+        ".poee-eval h3{margin:0 0 10px}"
+        ".poee-eval .trail{display:flex;gap:8px;margin-bottom:10px}"
+        ".poee-eval .trail div{flex:1;border-radius:8px;padding:8px 10px;font-size:13px;background:#f1f5f9}"
+        ".poee-eval .trail .ok{background:#ecfdf5}"
+        ".poee-eval .k{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748b}"
+        ".poee-eval .also{font-size:11px;color:#64748b}"
+        ".poee-eval .why,.poee-eval .cost{font-size:13px;line-height:1.55;margin:8px 0}"
+        ".poee-eval .cost{background:#fef2f2;border-radius:8px;padding:10px 12px}"
+        ".poee-eval .grp{margin:22px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;"
+        "color:#64748b}</style>"
+    )
+
     REFLECTION_PROMPTS = [
         "Which variables from your prediction made it into your model, and which did you end up excluding or "
         "flagging? What changed your mind?",
@@ -728,6 +750,98 @@ def prediction_html(prediction: dict) -> str:
     return out
 
 
+@app.function
+def choice_label(name: str, choice: str) -> str:
+    return TASKS[VARIABLES[name]["task"]]["labels"][choice]
+
+
+@app.function
+def correct_choice_html(name: str) -> str:
+    first, *others = VARIABLES[name]["correct"]
+    also = "".join(
+        f" <span class='also'>({html.escape(choice_label(name, c))} also accepted)</span>" for c in others
+    )
+    return f"<b>{html.escape(choice_label(name, first))}</b>{also}"
+
+
+@app.function
+def wrong_card_html(wrong: dict) -> str:
+    cost = (
+        f"<div class='cost'><b>What happens in the real world.</b> {html.escape(wrong['consequence'])}</div>"
+        if wrong["consequence"]
+        else ""
+    )
+    return (
+        f"<div class=\"ev {wrong['severity']}\"><h3>{html.escape(wrong['title'])}</h3>"
+        f"<div class='trail'><div><span class='k'>You chose</span>"
+        f"<b>{html.escape(choice_label(wrong['name'], wrong['chose']))}</b></div>"
+        f"<div class='ok'><span class='k'>Correct choice</span>{correct_choice_html(wrong['name'])}</div></div>"
+        f"<div class='why'><b>Why.</b> {html.escape(wrong['why'])}</div>{cost}</div>"
+    )
+
+
+@app.function
+def evaluation_html(decisions: dict) -> str:
+    counts, wrong = summary_counts(decisions), wrong_choices(decisions)
+    chips = "".join(
+        f"<span class='chip'>{html.escape(v['title'])}</span>"
+        for name, v in VARIABLES.items()
+        if decisions.get(name) and is_correct(name, decisions[name])
+    )
+    out = (
+        f"{EVAL_STYLE}<div class='poee-eval'><div class='sum'>"
+        f"<div class='big'>{counts['correct']} of {len(VARIABLES)} choices hold up. {len(wrong)} to review.</div>"
+        f"<div class='bar'><div style='flex:{counts['correct']};background:#10b981'></div>"
+        f"<div style='flex:{counts['harm']};background:#ef4444'></div>"
+        f"<div style='flex:{counts['cautious']};background:#f59e0b'></div></div>"
+        f"<div class='legend'>🟥 {counts['harm']} would cause harm or break a rule &nbsp; "
+        f"🟧 {counts['cautious']} too cautious, or effort in the wrong place</div>"
+        f"<div class='chips'>✓ Correct: {chips or '—'}</div></div>"
+    )
+    for task in TASKS:
+        cards = [w for w in wrong if w["task"] == task]
+        if cards:
+            out += f"<div class='grp'>Task {task} · {html.escape(TASKS[task]['header'])}</div>"
+            out += "".join(wrong_card_html(w) for w in cards)
+    return out + "</div>"
+
+
+@app.function
+def paragraph_html(text: str) -> str:
+    return html.escape(text.strip()).replace("\n", "<br>") if text.strip() else "<i>(left blank)</i>"
+
+
+@app.function
+def report_html(name: str, prediction: dict, decisions: dict, reasons: dict, notes: str, reflections: list[str]) -> str:
+    include_count = sum(1 for choice in decisions.values() if choice == "include")
+    answers = "".join(
+        f"<h3>{i}. {html.escape(q)}</h3><p>{paragraph_html(a)}</p>"
+        for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections), 1)
+    )
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Variable Selection Brief</title>
+<style>
+  body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
+  th, td {{ padding: 4px 8px; vertical-align: top; border-bottom: 1px solid #ddd; }}
+  @media print {{ body {{ margin: 0; }} }}
+</style></head><body>
+<h1>Variable Selection Brief</h1>
+<p><b>Name:</b> {html.escape(name.strip()) or '<i>(not given)</i>'}<br>
+<b>Scenario:</b> Student Success Analytics, early-warning variable selection<br>
+<b>Variables included in the model:</b> {include_count}</p>
+<h2>Prediction (locked before the data dictionary)</h2>
+{prediction_html(prediction)}
+<h2>Decisions and justifications</h2>
+{brief_table_html(brief_rows_of(decisions, reasons))}
+<h2>Notes for advisors and compliance staff</h2>
+<p>{paragraph_html(notes)}</p>
+<h2>Learner reflection</h2>
+{answers}
+<h2>Evaluation</h2>
+{evaluation_html(decisions)}
+</body></html>"""
+
+
 @app.cell
 def _():
     import marimo as mo                           
@@ -1105,42 +1219,43 @@ def explain(
     return
 
 
+@app.cell(hide_code=True)
+def evaluate(get_decisions, get_submitted, mo):
+    mo.stop(not get_submitted())
+    mo.vstack([
+        mo.md("# Stage 4 · Evaluate"),
+        mo.md(
+            "Here is how your choices compare with the correct choices. Only the choices to review get a card: "
+            "each one says why, and what would happen in the real world if the brief shipped as written."
+        ),
+        mo.Html(evaluation_html(get_decisions())),
+    ])
+    return
+
+
 @app.cell
 def download_brief(
     advisor_notes,
-    brief_rows,
-    include_count,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
     mo,
     reflections,
     student_name,
 ):
-    def _para(text):
-        return html.escape(text.strip()).replace("\n", "<br>") if text.strip() else "<i>(left blank)</i>"
-
+    mo.stop(not get_submitted())
     _name = student_name.value.strip()
-    _doc = f"""<!doctype html>
-    <html lang="en"><head><meta charset="utf-8"><title>Variable Selection Brief</title>
-    <style>
-      body {{ font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }}
-      th, td {{ padding: 4px 8px; vertical-align: top; border-bottom: 1px solid #ddd; }}
-      @media print {{ body {{ margin: 0; }} }}
-    </style></head><body>
-    <h1>Variable Selection Brief</h1>
-    <p><b>Name:</b> {html.escape(_name) or '<i>(not given)</i>'}<br>
-    <b>Scenario:</b> Student Success Analytics, early-warning variable selection<br>
-    <b>Variables included in the model:</b> {include_count}</p>
-    <h2>Decisions and justifications</h2>
-    {brief_table_html(brief_rows)}
-    <h2>Notes for advisors and compliance staff</h2>
-    <p>{_para(advisor_notes.value)}</p>
-    <h2>Learner reflection</h2>
-    {"".join(f"<h3>{i}. {html.escape(q)}</h3><p>{_para(a)}</p>" for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections.value), 1))}
-    </body></html>"""
-
+    _doc = report_html(
+        _name, get_prediction(), get_decisions(), get_reasons(), advisor_notes.value, reflections.value
+    )
     _slug = "".join(c if c.isalnum() else "-" for c in _name.lower()).strip("-")
     mo.vstack([
         mo.md("## Download your brief"),
-        mo.md("The file opens in any web browser. To make a PDF, open it and use **Print → Save as PDF**."),
+        mo.md(
+            "The file holds your prediction, every decision and justification, your reflection and this evaluation. "
+            "It opens in any web browser. To make a PDF, open it and use **Print → Save as PDF**."
+        ),
         mo.download(
             data=_doc.encode("utf-8"),
             filename=f"variable-selection-brief{'-' + _slug if _slug else ''}.html",

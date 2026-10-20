@@ -94,6 +94,28 @@ def test_reflection_prompts_reconcile_with_prediction():
     assert not any("feedback" in p for p in nb.REFLECTION_PROMPTS)
 
 
+def test_evaluation_html_only_wrong_cards():
+    d = {n: nb.VARIABLES[n]["correct"][0] for n in nb.VARIABLES}
+    d["pell"] = "include"
+    out = nb.evaluation_html(d)
+    assert "25 of 26 choices hold up. 1 to review." in out
+    assert out.count('class="ev') == 1 and "Correct choice" in out and "Key" not in out
+
+
+def test_evaluation_html_names_also_accepted_choice():
+    d = {n: nb.VARIABLES[n]["correct"][0] for n in nb.VARIABLES}
+    d["pell"] = "include"
+    assert "(Flag for Review also accepted)" in nb.evaluation_html(d)
+
+
+def test_report_html_escapes_learner_text():
+    d = {n: "flag" for n in nb.VARIABLES}
+    r = {n: "<script>x</script> & y" for n in nb.VARIABLES}
+    pred = {"could_predict": [{"variable": "<b>", "reason": ""}], "barred": []}
+    out = nb.report_html("A&B", pred, d, r, "", ["", "", ""])
+    assert "<script>" not in out and "&lt;script&gt;" in out
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
