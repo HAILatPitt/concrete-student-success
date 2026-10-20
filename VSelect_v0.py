@@ -1524,14 +1524,10 @@ def wrapup_summary_table(get_decisions, get_prediction, get_reasons, get_submitt
 @app.cell
 def review_wave_buttons(get_prediction, mo):
     mo.stop(get_prediction() is None)
-    button_output = []
-    for num in range(1, 5):
-        temp_md = f"""<a href=#task_{num}>""""""{temp_button}</a>"""
-        temp_label = f"""Review Wave {num}"""
-        button_output.append(mo.md(temp_md).batch(temp_button=mo.ui.button(label=temp_label)))
-    mo.hstack(
-        button_output
-    )
+    mo.hstack([
+        mo.md(f"<a href=#task_{_task}>{{button}}</a>").batch(button=mo.ui.button(label=f"Review Wave {_task}"))
+        for _task in TASKS
+    ])
     return
 
 

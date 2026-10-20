@@ -8,3 +8,6 @@
 /testing
 /~$udent Success MVP.docx
 __marimo__/session/
+.DS_Store
+__pycache__/
+.superpowers/
