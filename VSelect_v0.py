@@ -118,7 +118,14 @@ with app.setup:
                     'and equity review before any use. Reporting it in aggregate is the safer route.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    "Compliance won't sign the brief, and if the FAFSA eligibility flag ships anyway the "
+                    'university is using FAFSA data outside what the law allows. For students, being low-'
+                    'income becomes the reason an advisor calls, so the first thing a Pell student hears is '
+                    '"we think you\'ll struggle."'
+                ),
+            },
         },
         'efc': {
             "task": 1,
@@ -141,7 +148,17 @@ with app.setup:
                     'answer is already clear: keep it out of the model.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Most current students have no EFC, so the model learns from older cohorts and treats the'
+                    " missing value as a signal. Using FAFSA data this way also falls outside the law's "
+                    'permitted uses, and compliance will send the brief back.'
+                ),
+                'flag': (
+                    'Counsel spends time on a question the law already answers, and modelling waits while '
+                    'they do. Students gain nothing except a later start to outreach.'
+                ),
+            },
         },
         'sai': {
             "task": 1,
@@ -164,7 +181,18 @@ with app.setup:
                     'out of the model.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    "Only students from 2024–25 onward have an SAI, so the model can't learn from past "
+                    'cohorts and treats the gap as a signal. It also uses FAFSA data outside the permitted '
+                    'uses, which compliance will reject.'
+                ),
+                'flag': (
+                    'A review spends legal time confirming what the law already says and delays the model. '
+                    "The brief also looks unsure about a clear rule, which weakens advisors' trust in the "
+                    'rest of it.'
+                ),
+            },
         },
         'unmet': {
             "task": 1,
@@ -182,7 +210,14 @@ with app.setup:
                     'can change.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    "Students get flagged because they can't afford college, not for anything advisors can "
+                    'fix, so outreach turns into "you\'re at risk because you\'re poor." Because unmet need can'
+                    ' reveal the Student Aid Index, the university also risks exposing FAFSA data through its'
+                    ' own records.'
+                ),
+            },
         },
         'merit': {
             "task": 1,
@@ -199,7 +234,13 @@ with app.setup:
                     'students. Use only with a strong equity justification.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Merit awards go disproportionately to students from well-resourced schools, so the model'
+                    ' learns that having no award means risk and flags lower-income students more often. '
+                    'Advisors spend their time on family income rather than on how students are doing.'
+                ),
+            },
         },
         'pell_plus': {
             "task": 1,
@@ -216,7 +257,12 @@ with app.setup:
                     'Status.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'It reveals who receives Pell, so the low-income flag comes in by the back door. '
+                    'Compliance will spot the link, and Pell students get singled out a second time.'
+                ),
+            },
         },
         'race': {
             "task": 2,
@@ -236,7 +282,18 @@ with app.setup:
                     ' to keep it for auditing while excluding it from model training.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Students would be flagged partly because of their race, which invites a civil-rights '
+                    'complaint and lasting damage to trust. Black and Latino students who are doing fine get '
+                    "calls implying they're expected to fail."
+                ),
+                'exclude': (
+                    'With race gone, nobody can check whether the model flags some groups far more than '
+                    'others. If it does, the university finds out from a complaint or a news story instead of'
+                    ' its own audit.'
+                ),
+            },
         },
         'gender': {
             "task": 2,
@@ -256,7 +313,17 @@ with app.setup:
                     'outputs.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    "Flags would differ by gender for reasons advisors can't act on, which looks like "
+                    'discrimination in any review. Students get outreach based on who they are rather than '
+                    "how they're doing."
+                ),
+                'exclude': (
+                    'You lose the ability to see whether the model flags men and women at different rates. A '
+                    'gender gap in outreach could run for years without anyone noticing.'
+                ),
+            },
         },
         'age': {
             "task": 2,
@@ -277,7 +344,16 @@ with app.setup:
                     'Audit-only use is often a balanced choice.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Older, non-traditional students get flagged for their age, and outreach reads as "people'
+                    ' like you don\'t finish." Age-discrimination complaints become a real exposure.'
+                ),
+                'exclude': (
+                    "Without age you can't check whether the model fails adult learners, a group with real "
+                    'and specific needs. Problems for them stay invisible.'
+                ),
+            },
         },
         'pronouns': {
             "task": 2,
@@ -297,7 +373,17 @@ with app.setup:
                     ' reliable bias audit either. Excluding them is the clearer choice.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'A mostly empty, optional field becomes a signal, so students who shared their pronouns '
+                    "are treated differently from those who didn't. Trans and nonbinary students could be "
+                    'flagged for disclosing their identity.'
+                ),
+                'flag': (
+                    "The team keeps sensitive identity data it can't use, adding privacy risk with nothing in"
+                    ' return. A breach would expose students who trusted the campus climate office.'
+                ),
+            },
         },
         'gpa': {
             "task": 3,
@@ -313,7 +399,13 @@ with app.setup:
                     'Consider excluding or flagging for quality remediation.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Because high schools grade differently, the model favours students from generous graders'
+                    ' and flags those from rigorous or under-resourced schools. Advisors chase noise while '
+                    'real risk goes unflagged.'
+                ),
+            },
         },
         'scores': {
             "task": 3,
@@ -335,7 +427,17 @@ with app.setup:
                     'Could you retain a binary ‘submitted’ flag instead?'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Under test-optional admissions, missing scores look like low scores, so students who '
+                    "didn't submit get flagged for a policy choice. Those are often the lower-income students"
+                    ' test-optional was meant to help.'
+                ),
+                'exclude': (
+                    'You throw away useful information, including the simple fact of whether a student '
+                    'submitted scores. The model gets weaker with no gain in fairness.'
+                ),
+            },
         },
         'midterms': {
             "task": 3,
@@ -355,7 +457,17 @@ with app.setup:
                     'inclusion or data-quality work make it viable?'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Students in courses that report midterms look riskier than identical students in courses'
+                    " that don't, so flags follow course choice and department habits. Advisors call the "
+                    'wrong students.'
+                ),
+                'exclude': (
+                    'The model loses its most timely academic signal. Students who are struggling now get '
+                    'missed until final grades post, after the withdrawal deadline.'
+                ),
+            },
         },
         'epr': {
             "task": 3,
@@ -376,7 +488,17 @@ with app.setup:
                     'than discard entirely.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Reports arrive only from some faculty, so students in those classes get flagged more and'
+                    ' others are missed. Which students get outreach ends up depending on which instructors '
+                    'file reports.'
+                ),
+                'exclude': (
+                    'The university drops an early-alert system it already runs instead of fixing it. '
+                    'Struggling students lose one of the few signals that arrives early enough to help.'
+                ),
+            },
         },
         'printer': {
             "task": 3,
@@ -396,7 +518,16 @@ with app.setup:
                     'to justify cost.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Counts depend on which printers were online and who uses dorm machines, so commuters and'
+                    ' students with their own printers look "inactive." Advisors chase a meaningless number.'
+                ),
+                'flag': (
+                    'Time and money go into fixing printer logs that will never predict persistence. That '
+                    'effort comes out of the budget for signals that matter.'
+                ),
+            },
         },
         'legacy': {
             "task": 4,
@@ -412,7 +543,13 @@ with app.setup:
                     'students. Document why its predictive gain outweighs equity concerns.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Students whose parents attended are treated as lower risk, which steers support toward '
+                    'the already advantaged. First-generation students, who need the help most, are pushed '
+                    'down the list.'
+                ),
+            },
         },
         'athlete': {
             "task": 4,
@@ -432,7 +569,17 @@ with app.setup:
                     'risk group lacking time for coursework.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Athletes already have dedicated academic advising, so the model sends a second, '
+                    'uncoordinated call to the same students. Advisor time is wasted and athletes get mixed '
+                    'messages.'
+                ),
+                'exclude': (
+                    'A group with known time pressures disappears from the model, so no one checks whether '
+                    'athletics advising is catching everyone. Athletes who slip through get no backup.'
+                ),
+            },
         },
         'firstgen': {
             "task": 4,
@@ -453,7 +600,17 @@ with app.setup:
                     'is already known, so a review adds little.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'exclude': (
+                    "The model can't see a group that benefits from navigational support, so first-generation"
+                    ' students confused by college processes get no early call. The university loses an easy '
+                    'equity win.'
+                ),
+                'flag': (
+                    'Outreach to first-generation students waits on a review with an obvious answer. Students'
+                    ' who need help in their first term may not get it until their second.'
+                ),
+            },
         },
         'distance': {
             "task": 4,
@@ -473,7 +630,17 @@ with app.setup:
                     'community-building initiatives.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Students who live far away get flagged, but advisors have little to offer about '
+                    'distance, so the flag leads nowhere. It can also stand in for a rural or low-income '
+                    'background.'
+                ),
+                'exclude': (
+                    'Geographically isolated students, who often struggle with belonging, become invisible. '
+                    'Community-building programmes lose the data they need to reach them.'
+                ),
+            },
         },
         'credits': {
             "task": 4,
@@ -493,7 +660,16 @@ with app.setup:
                     'act on a drop right away. Holding it for review only delays a strong early signal.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'exclude': (
+                    'The model misses one of the clearest early warnings: a student who drops below full time'
+                    ' after add/drop. Advisors find out only when the student fails to re-enrol.'
+                ),
+                'flag': (
+                    'A strong, reliable signal sits idle while a review confirms what is already known. '
+                    'Students who cut their load in week two wait longer for a call.'
+                ),
+            },
         },
         'housing': {
             "task": 4,
@@ -510,7 +686,16 @@ with app.setup:
                     ' hours and resources. Holding it for review delays a useful signal.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'exclude': (
+                    'Commuters, who often have the weakest ties to campus, become invisible to the model. '
+                    'Support built for them never reaches the students who need it.'
+                ),
+                'flag': (
+                    'The model waits on a review of a reliable variable with a clear use. Commuters who are '
+                    'drifting away get help later than they could.'
+                ),
+            },
         },
         'residency': {
             "task": 4,
@@ -527,7 +712,17 @@ with app.setup:
                     'high-tuition groups.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Out-of-state and international students get flagged for where they come from, which for '
+                    'international students can look like national-origin bias. Outreach risks telling them '
+                    "they don't belong."
+                ),
+                'exclude': (
+                    'You lose sight of the tuition burden out-of-state students carry, so financial outreach '
+                    "can't target them. Students leave for cost reasons no one saw coming."
+                ),
+            },
         },
         'origins': {
             "task": 4,
@@ -544,7 +739,17 @@ with app.setup:
                     'transition challenges.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'A guessed urban, rural or suburban label feeds the model as if it were fact, so '
+                    'mislabelled students get the wrong outreach. Rural students may be stereotyped by a '
+                    'heuristic.'
+                ),
+                'exclude': (
+                    'Rural-to-urban transition problems go unseen. Students struggling with that move get no '
+                    'targeted support.'
+                ),
+            },
         },
         'transfer': {
             "task": 4,
@@ -564,7 +769,16 @@ with app.setup:
                     'Holding the variable for review delays help for a group with elevated departure risk.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'exclude': (
+                    'Transfer students, who leave at higher rates, disappear from the model. Credit-'
+                    'articulation problems that one meeting could fix go unnoticed.'
+                ),
+                'flag': (
+                    'Outreach to transfer students waits on a review with a clear answer. Credit problems '
+                    'that should be caught in the first term are found later.'
+                ),
+            },
         },
         'extracurricular': {
             "task": 4,
@@ -584,7 +798,16 @@ with app.setup:
                     'discarding outright.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    'Self-reported involvement favours students who fill in surveys, so quiet or busy '
+                    'students look disengaged. Students who work long hours get flagged for working.'
+                ),
+                'exclude': (
+                    'A useful belonging signal is thrown away instead of being cleaned up. The model loses '
+                    'its only measure of social connection.'
+                ),
+            },
         },
         'wi_fi': {
             "task": 4,
@@ -604,7 +827,17 @@ with app.setup:
                     'intrusive surveillance with no established link to persistence. Exclude it.'
                 ),
             },
-            "consequence": {},
+            "consequence": {
+                'include': (
+                    "The university would be watching students' network traffic to judge them, and when "
+                    'students find out, trust collapses. Gamers get flagged for a hobby with no proven link '
+                    'to dropping out.'
+                ),
+                'flag': (
+                    "A review gives a surveillance idea legitimacy and burns committee time on it. Students' "
+                    'privacy stays at risk while the committee meets.'
+                ),
+            },
         },
     }
 

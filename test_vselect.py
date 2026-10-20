@@ -138,6 +138,12 @@ def test_why_texts_do_not_praise_wrong_choices():
             assert not any(p in text.lower() for p in praise), (name, choice)
 
 
+def test_every_wrong_choice_has_consequence():
+    for name, v in nb.VARIABLES.items():
+        for c in set(nb.CHOICES) - set(v["correct"]):
+            assert v["consequence"].get(c, "").strip(), (name, c)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
