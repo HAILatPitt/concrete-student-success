@@ -48,6 +48,18 @@ def test_wrong_choices_uses_latest_decision():
     assert nb.wrong_choices(d) == []
 
 
+def test_record_decision_passes_a_plain_function_updater():
+    # marimo's state setter treats only plain functions as updaters; a
+    # functools.partial would be stored as the new state value.
+    import types
+    seen = []
+    nb.record_decision(seen.append, "pell", "flag")
+    nb.record_reason(seen.append, "pell", "because")
+    assert all(isinstance(u, types.FunctionType) for u in seen)
+    assert seen[0]({"pell": None}) == {"pell": "flag"}
+    assert seen[1]({"pell": ""}) == {"pell": "because"}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
