@@ -3,6 +3,588 @@ import marimo
 __generated_with = "0.17.7"
 app = marimo.App(width="medium")
 
+with app.setup:
+    CHOICES = ("include", "exclude", "flag")
+
+    TASKS = {
+        1: {
+            "header": 'Regulatory Gate',
+            "labels": {'include': 'Include', 'exclude': 'Exclude', 'flag': 'Flag for Review'},
+            "banner": "",
+        },
+        2: {
+            "header": 'Protected-Attribute Gate',
+            "labels": {'include': 'Include As-Is', 'exclude': 'Exclude Entirely', 'flag': 'Keep for Bias-Audit Only'},
+            "banner": "",
+        },
+        3: {
+            "header": 'Data-Reliability Gate',
+            "labels": {'include': 'Include As-Is', 'exclude': 'Exclude (Too Unreliable)', 'flag': 'Flag for Data-Quality Improvement'},
+            "banner": "",
+        },
+        4: {
+            "header": 'Equity & Actionability Gate',
+            "labels": {'include': 'Include As-Is', 'exclude': 'Exclude (Not Fair or Actionable)', 'flag': 'Flag for Equity & Intervention Review'},
+            "banner": "",
+        },
+    }
+
+    VARIABLES = {
+        'pell': {
+            "task": 1,
+            "title": 'Pell Status',
+            "definition": (
+                'Whether a student receives a federal Pell Grant. New regulations restrict use of '
+                'financial-aid data in predictive modeling.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Including Pell Status violates current federal guidance and may expose the institution '
+                    'to penalties. Consider aggregate reporting instead of individual-level use.'
+                ),
+            },
+            "consequence": {},
+        },
+        'efc': {
+            "task": 1,
+            "title": 'Expected Family Contribution (EFC)',
+            "definition": (
+                'Amount a family is expected to contribute to education costs (legacy FAFSA metric). '
+                'Regulatory compliance requires excluding this sensitive financial information.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'EFC is explicitly barred under 2024 Department of Education rules; its inclusion would '
+                    'render the model non-compliant.'
+                ),
+            },
+            "consequence": {},
+        },
+        'sai': {
+            "task": 1,
+            "title": 'Student Aid Index (SAI)',
+            "definition": (
+                'A new metric from recent FAFSA changes that replaced EFC. Recent implementation means '
+                'this data may not be available for all students in your historical dataset.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'SAI is sensitive financial-aid data with incomplete coverage. Using it risks privacy '
+                    'violations and injects missing-data bias.'
+                ),
+            },
+            "consequence": {},
+        },
+        'unmet': {
+            "task": 1,
+            "title": 'Unmet Need',
+            "definition": (
+                'Gap between the cost of attendance and the student’s available resources. Financial-'
+                'stress indicator, but regulatory restrictions likely prohibit its use in individual-'
+                'level models.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Unmet Need combines multiple restricted data points. Including it would contravene '
+                    'policy and amplify socioeconomic bias.'
+                ),
+            },
+            "consequence": {},
+        },
+        'merit': {
+            "task": 1,
+            "title": 'Merit Award Amount',
+            "definition": (
+                'Scholarship amounts awarded based on academic achievement rather than financial need. '
+                'Consider whether this variable primarily reflects prior achievement or introduces '
+                'socioeconomic factors into your model.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Merit awards can proxy socioeconomic status and unintentionally disadvantage low-income '
+                    'students. Use only with a strong equity justification.'
+                ),
+            },
+            "consequence": {},
+        },
+        'pell_plus': {
+            "task": 1,
+            "title": 'Pell Plus',
+            "definition": (
+                'University matching funds that complement federal Pell Grants. Financial-aid variables '
+                'like this are likely subject to the same regulatory restrictions as other financial '
+                'data.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Pell Plus directly signals Pell participation; individual-level use is restricted. '
+                    'Exclude or seek explicit legal clearance.'
+                ),
+            },
+            "consequence": {},
+        },
+        'race': {
+            "task": 2,
+            "title": 'Race',
+            "definition": (
+                'Student’s self-reported racial/ethnic identity. Used during exploratory data analysis '
+                'but removed before predictive modeling.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Using Race as a predictive feature can embed historical inequities and violate '
+                    'institutional policy. Retain only for bias-audit.'
+                ),
+                'exclude': (
+                    'Without Race you lose the ability to audit fair outcomes across groups. Best practice is'
+                    ' to keep it for auditing while excluding it from model training.'
+                ),
+            },
+            "consequence": {},
+        },
+        'gender': {
+            "task": 2,
+            "title": 'Gender',
+            "definition": (
+                'Student’s gender identity as reported during application. Protected class variable that '
+                'raises ethical considerations.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Directly modelling on Gender risks discriminatory interventions. Consider audit-only '
+                    'retention.'
+                ),
+                'exclude': (
+                    'Eliminating Gender data removes a key lens for detecting gender-based disparities as-is '
+                    'outputs.'
+                ),
+            },
+            "consequence": {},
+        },
+        'age': {
+            "task": 2,
+            "title": 'Age',
+            "definition": (
+                'Student’s age at enrollment. Flagged as protected class variable. Consider whether age-'
+                'based predictions might disadvantage non-traditional students while recognizing that age'
+                ' can reflect meaningful differences in life circumstances.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Age may correlate with persistence but also with protected status (non-traditional '
+                    'learners). Document equity safeguards or shift to audit-only use.'
+                ),
+                'exclude': (
+                    'Excluding Age erases patterns relevant to adult learners and hampers fairness checks. '
+                    'Audit-only use is often a balanced choice.'
+                ),
+            },
+            "consequence": {},
+        },
+        'pronouns': {
+            "task": 2,
+            "title": 'Preferred Pronouns',
+            "definition": (
+                'Student-provided pronoun preference collected by campus climate office. Optional field '
+                'with high missingness. Can affirm identity but is not a stable predictor of retention.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Preferred Pronouns are not predictive of persistence and risk trivializing gender '
+                    'identity. Exclude or store only for awareness training, not analytics.'
+                ),
+                'exclude': (
+                    'Pronoun data lack completeness and standardization, limiting audit utility. Exclusion is'
+                    ' usually appropriate.'
+                ),
+            },
+            "consequence": {},
+        },
+        'gpa': {
+            "task": 3,
+            "title": 'High School GPA',
+            "definition": (
+                'Student’s high-school grade-point average, a common predictor of college success. This '
+                'variable was unreliable due to reporting unreliability across high schools.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'High-school GPAs lack standardisation; predictive value may be swamped by noise. '
+                    'Consider excluding or flagging for quality remediation.'
+                ),
+            },
+            "consequence": {},
+        },
+        'scores': {
+            "task": 3,
+            "title": 'Test Scores',
+            "definition": (
+                'Academic performance metrics from high school and standardised tests (SAT/ACT). Due to '
+                'test-optional policies implemented during COVID, scores may be missing for many '
+                'students. Creative solution to transform into a ‘test score submitted’ indicator '
+                'leverages available information while addressing systematic gaps.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Raw Test Scores are sparse post-COVID; treating missing as zero could bias results. A '
+                    'submission indicator or audit flag may be safer.'
+                ),
+                'exclude': (
+                    'Dropping Test Scores ignores a potentially strong signal for the subset who submitted. '
+                    'Could you retain a binary ‘submitted’ flag instead?'
+                ),
+            },
+            "consequence": {},
+        },
+        'midterms': {
+            "task": 3,
+            "title": 'Midterm Grades',
+            "definition": (
+                'Preliminary academic performance indicators halfway through the term. Identified as '
+                'valuable but not consistently available across courses.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Mid-Term Grades appear only for certain courses, risking departmental bias. Flag for '
+                    'quality improvement or exclude.'
+                ),
+                'exclude': (
+                    'Excluding Mid-Term Grades forfeits early academic-performance insight. Could selective '
+                    'inclusion or data-quality work make it viable?'
+                ),
+            },
+            "consequence": {},
+        },
+        'epr': {
+            "task": 3,
+            "title": 'Early Progress Reports',
+            "definition": (
+                'Faculty-submitted assessments of student performance early in the semester. Reporting '
+                'inconsistency means this potentially valuable early-warning indicator isn’t reliable '
+                'enough to include.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Sparse, faculty-dependent reporting could mislead the model. Flag for improvement or '
+                    'consider exclusion.'
+                ),
+                'exclude': (
+                    'You lose a proven early-alert signal. Engage stakeholders to improve reporting rather '
+                    'than discard entirely.'
+                ),
+            },
+            "consequence": {},
+        },
+        'printer': {
+            "task": 3,
+            "title": 'Dorm Printer Usage',
+            "definition": (
+                'Weekly count of pages printed in residence-hall printers. Logs are missing whenever '
+                'printers are offline; many students use personal or library printers instead.'
+            ),
+            "correct": ['exclude'],
+            "why": {
+                'include': (
+                    'Printer logs cover only a subset of students and machines, yielding noisy, biased '
+                    'counts. Little theoretical link to persistence.'
+                ),
+                'flag': (
+                    'Standardising printer data would require major infrastructure changes—benefit unlikely '
+                    'to justify cost.'
+                ),
+            },
+            "consequence": {},
+        },
+        'legacy': {
+            "task": 4,
+            "title": 'Legacy Status',
+            "definition": (
+                'Whether the student has family members who previously attended the university. May '
+                'indicate stronger institutional ties.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Legacy Status may encode privilege and could unfairly prioritise well-connected '
+                    'students. Document why its predictive gain outweighs equity concerns.'
+                ),
+            },
+            "consequence": {},
+        },
+        'athlete': {
+            "task": 4,
+            "title": 'Student Athlete Status',
+            "definition": (
+                'Whether the student participates in university athletics. May indicate additional '
+                'support structures but also time commitments.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Athlete status already triggers dedicated advising; flagging athletes again may waste '
+                    'resources. Ensure interventions add value.'
+                ),
+                'exclude': (
+                    'Athletes juggle academics and sport travel. Excluding this variable may hide a known '
+                    'risk group lacking time for coursework.'
+                ),
+            },
+            "consequence": {},
+        },
+        'firstgen': {
+            "task": 4,
+            "title": 'First Generation Status',
+            "definition": (
+                'Indicates if the student is the first in their family to attend college; may reflect '
+                'differences in familiarity with college processes.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Good call—first-gen status supports equity-minded outreach. Be sure to explain positive,'
+                    ' not deficit-based, interventions.'
+                ),
+                'exclude': (
+                    'First-generation students often benefit from navigational support. Omitting this '
+                    'variable could undermine equity goals.'
+                ),
+            },
+            "consequence": {},
+        },
+        'distance': {
+            "task": 4,
+            "title": 'Distance From Home',
+            "definition": (
+                'Calculated metric based on student’s home address and campus location; privacy-'
+                'preserving alternative to ZIP codes.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Distance correlates with homesickness and travel cost but offers limited intervention '
+                    'levers. Note whether actionable support exists (e.g., travel grants).'
+                ),
+                'exclude': (
+                    'Ignoring Distance removes insight into geographically isolated students who may need '
+                    'community-building initiatives.'
+                ),
+            },
+            "consequence": {},
+        },
+        'credits': {
+            "task": 4,
+            "title": 'Credits After Add/Drop',
+            "definition": (
+                'Credit hours the student is taking after the official add/drop deadline; may reflect '
+                'adjustment to academic realities.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': 'Strong early signal of load management issues. Advisors can act quickly—solid choice.',
+                'exclude': (
+                    'Course-load changes are an actionable red flag. Excluding them weakens the model’s '
+                    'practical value.'
+                ),
+            },
+            "consequence": {},
+        },
+        'housing': {
+            "task": 4,
+            "title": 'Live On Campus or Commuter',
+            "definition": 'Housing status affects integration into campus life and access to resources.',
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Useful and actionable—commuters may need remote-friendly support. Ensure interventions '
+                    'respect time and travel constraints.'
+                ),
+                'exclude': (
+                    'Housing status strongly predicts engagement. Excluding it may mask differences in '
+                    'retention risk.'
+                ),
+            },
+            "consequence": {},
+        },
+        'residency': {
+            "task": 4,
+            "title": 'Residency (In-State / Out-of-State / International)',
+            "definition": 'Affects tuition rates and connection to campus.',
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Residency drives cost burden; interventions must avoid stereotyping out-of-state '
+                    'students as less committed.'
+                ),
+                'exclude': (
+                    'Cost differentials matter. Removing Residency could blunt financial-aid outreach to '
+                    'high-tuition groups.'
+                ),
+            },
+            "consequence": {},
+        },
+        'origins': {
+            "task": 4,
+            "title": 'Urban / Rural / Suburban Origins',
+            "definition": 'Classification of student’s home community; derived from heuristics.',
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Heuristic classification may mislabel students; validate definitions or risk noisy '
+                    'signals.'
+                ),
+                'exclude': (
+                    'Campus adjustment often differs by origin. Excluding could overlook rural-to-urban '
+                    'transition challenges.'
+                ),
+            },
+            "consequence": {},
+        },
+        'transfer': {
+            "task": 4,
+            "title": 'Transfer Status',
+            "definition": (
+                'Whether the student transferred from another institution versus starting as a first-'
+                'year.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Transfer students face unique credit-articulation hurdles—actionable and equity-'
+                    'relevant.'
+                ),
+                'exclude': (
+                    'You dropped a key subgroup with elevated departure risk. Advisors may miss needed '
+                    'support.'
+                ),
+            },
+            "consequence": {},
+        },
+        'extracurricular': {
+            "task": 4,
+            "title": 'Extracurricular Involvement',
+            "definition": (
+                'Participation in clubs or other non-academic activities; data collection relies on self-'
+                'reporting.'
+            ),
+            "correct": ['flag'],
+            "why": {
+                'include': (
+                    'Self-report bias and missingness limit reliability; document caveats to avoid '
+                    'overstating predictive value.'
+                ),
+                'exclude': (
+                    'Engagement predicts belonging; consider flagging data-quality issues rather than '
+                    'discarding outright.'
+                ),
+            },
+            "consequence": {},
+        },
+        'wi_fi': {
+            "task": 4,
+            "title": 'Campus-Wi-Fi Gaming Network Participation',
+            "definition": (
+                'Binary flag—student devices connected to high-traffic gaming ports for ≥ 5 hours/week '
+                'during evenings.'
+            ),
+            "correct": ['exclude', 'flag'],
+            "why": {
+                'include': (
+                    'Correlation to retention unproven; risk of pathologising hobby behaviour. Provide '
+                    'theoretical justification or exclude.'
+                ),
+            },
+            "consequence": {},
+        },
+    }
+
+
+@app.function
+def variables_in(task: int) -> list[str]:
+    return [name for name, v in VARIABLES.items() if v["task"] == task]
+
+
+@app.function
+def is_correct(name: str, choice: str) -> bool:
+    return choice in VARIABLES[name]["correct"]
+
+
+@app.function
+def severity(name: str, choice: str) -> str:
+    return "harm" if choice == "include" and not is_correct(name, choice) else "cautious"
+
+
+@app.function
+def has_variable(row: dict) -> bool:
+    return bool(row.get("variable", "").strip())
+
+
+@app.function
+def prediction_ready(could_predict: list[dict], barred: list[dict]) -> bool:
+    return any(map(has_variable, could_predict)) and any(map(has_variable, barred))
+
+
+@app.function
+def all_decided(decisions: dict) -> bool:
+    return all(decisions.get(name) for name in VARIABLES)
+
+
+@app.function
+def missing_reasons(decisions: dict, reasons: dict) -> list[str]:
+    return [name for name, choice in decisions.items() if choice and not reasons.get(name, "").strip()]
+
+
+@app.function
+def can_submit(decisions: dict, reflections: list[str]) -> bool:
+    return all_decided(decisions) and all(text.strip() for text in reflections)
+
+
+@app.function
+def wrong_choice(name: str, choice: str) -> dict:
+    v = VARIABLES[name]
+    return {
+        "name": name,
+        "task": v["task"],
+        "title": v["title"],
+        "chose": choice,
+        "correct": v["correct"],
+        "why": v["why"][choice],
+        "consequence": v["consequence"].get(choice, ""),
+        "severity": severity(name, choice),
+    }
+
+
+@app.function
+def wrong_choices(decisions: dict) -> list[dict]:
+    return [
+        wrong_choice(name, decisions[name])
+        for name in VARIABLES
+        if decisions.get(name) and not is_correct(name, decisions[name])
+    ]
+
+
+@app.function
+def summary_counts(decisions: dict) -> dict:
+    wrong = wrong_choices(decisions)
+    harm = sum(w["severity"] == "harm" for w in wrong)
+    decided = sum(1 for name in VARIABLES if decisions.get(name))
+    return {"correct": decided - len(wrong), "harm": harm, "cautious": len(wrong) - harm}
+
+
+
 
 @app.cell(hide_code=True)
 def variable_class_definition(
@@ -932,597 +1514,6 @@ def task_4_getters(
         },
     }
     return (task_4_getters,)
-
-
-@app.cell(hide_code=True)
-def variable_details():
-    #text used throughout notebook, in case it needs to be rewritten
-    textbox_text_boilerplate = 'Please briefly justify your reasoning for your'
-    correct = "Right Choice"
-
-    #labels for variable selection buttons, by task
-    button_labels_by_task = {
-        1: {'include': "Include", "exclude": "Exclude", "flag": "Flag for Review"},
-        2: {'include': "Include As-Is", "exclude": "Exclude Entirely", "flag": "Keep for Bias-Audit Only"},
-        3: {'include': "Include As-Is", "exclude": "Exclude (Too Unreliable)", "flag": "Flag for Data-Quality Improvement"},
-        4: {'include': "Include As-Is", "exclude": "Exclude (Not Fair or Actionable)", "flag": "Flag for Equity & Intervention Review"},
-    }
-
-    variable_details = {
-        'pell': {
-            'title': 'Pell Status',
-            'def': 'Whether a student receives a federal Pell Grant. New regulations restrict use of financial-aid data ' 
-                   'in predictive modeling.',
-            'feedback': {
-                'initial': {
-                    'include': 'Including Pell Status violates current federal guidance and may expose the institution to penalties. '
-                               'Consider aggregate reporting instead of individual-level use.',
-                    'exclude': correct,
-                    'flag': 'Reasonable: university lawyers can confirm how the new federal rules apply. Expect "no use for individual students", though totals across groups may still be allowed.',
-                },
-                'final': {
-                    'include': "Including Pell Status violates current federal guidance and may expose the institution to penalties. "
-                               "Consider aggregate reporting instead of individual-level use.",
-                    'exclude': correct,
-                    'flag': correct,
-                }
-            },
-        },
-        'efc': {
-            'title': 'Expected Family Contribution (EFC)',
-            'def':  'Amount a family is expected to contribute to education costs (legacy FAFSA metric). '
-                    'Regulatory compliance requires excluding this sensitive financial information.',
-            'feedback': {
-                'initial': {
-                    'include': 'EFC is explicitly barred under 2024 Department of Education rules; '
-                               'its inclusion would render the model non-compliant.',
-                    'exclude': correct, 
-                    'flag': 'Acceptable, but a review adds little here: 2024 federal rules already ban EFC, so excluding it outright is the clearer choice.',
-                },
-                'final': {
-                    'include': "EFC is explicitly barred under 2024 Department of Education rules; "
-                               "its inclusion would render the model non-compliant.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'sai': {
-            'title': "Student Aid Index (SAI)",
-            'def': "A new metric from recent FAFSA changes that replaced EFC. "
-                   "Recent implementation means this data may not be available for all students in your historical dataset.",
-            'feedback': {
-                'initial': {
-                    'include': 'SAI is sensitive financial-aid data with incomplete coverage. Using it risks privacy '
-                               'violations and injects missing-data bias.',
-                    'exclude': correct,
-                    'flag': 'Sensible: lawyers can rule on the privacy question, and the team can check how many past students even have an SAI on record.',
-                },
-                'final': {
-                    'include': "SAI is sensitive financial-aid data with incomplete coverage. "
-                               "Using it risks privacy violations and injects missing-data bias.",
-                    'exclude': correct,
-                    'flag': correct,                
-                },
-            },
-        },
-        'unmet': {
-            'title': "Unmet Need",
-            'def': 'Gap between the cost of attendance and the student’s available resources. '
-                   'Financial-stress indicator, but regulatory restrictions likely prohibit its use in individual-level models.',
-            'feedback': {
-                'initial': {
-                    'include': 'Unmet Need combines multiple restricted data points. '
-                               'Including it would contravene policy and amplify socioeconomic bias.',
-                    'exclude': correct,
-                    'flag': 'Good instinct: Unmet Need is calculated from several restricted financial fields, so the review should cover all of them, not just the final number.',
-                },
-                'final': {
-                    'include': "Unmet Need combines multiple restricted data points. "
-                               "Including it would contravene policy and amplify socioeconomic bias.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'merit': {
-            'title': "Merit Award Amount",
-            'def': 'Scholarship amounts awarded based on academic achievement rather than financial need. '
-                   'Consider whether this variable primarily reflects prior achievement or introduces '
-                   'socioeconomic factors into your model.',            
-            'feedback': {
-                'initial': {
-                    'include': 'Merit awards can proxy socioeconomic status and unintentionally disadvantage low-income students. '
-                               'Use only with a strong equity justification.',
-                    'exclude': correct,
-                    'flag': "Reasonable: merit aid isn't based on need, but the review should check whether award amounts quietly reflect family income.",
-                },
-                'final': {
-                    'include': "Merit awards can proxy socioeconomic status and unintentionally disadvantage low-income students. "
-                               "Use only with a strong equity justification.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'pell_plus': {
-            'title': "Pell Plus",
-            'def': 'University matching funds that complement federal Pell Grants. '
-                   'Financial-aid variables like this are likely subject to the same regulatory restrictions '
-                   'as other financial data.',
-            'feedback': {
-                'initial': {
-                    'include': 'Pell Plus directly signals Pell participation; individual-level use is restricted. '
-                               'Exclude or seek explicit legal clearance.',
-                    'exclude': correct,
-                    'flag': 'Sensible: Pell Plus reveals who receives a Pell Grant, so it needs the same legal approval as Pell itself. Keep it out until lawyers sign off.',
-                },
-                'final': {
-                    'include': "Pell Plus directly signals Pell participation; individual-level use is restricted. "
-                               "Exclude or seek explicit legal clearance.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'race': {
-            'title': "Race",
-            'def': "Student’s self-reported racial/ethnic identity. Used during exploratory data analysis "
-                   "but removed before predictive modeling.",
-            'feedback': {
-                'initial': {
-                    'include': "Using Race as a predictive feature can embed historical inequities and violate institutional policy. "
-                               "Retain only for bias-audit.",
-                    'exclude': "Without Race you lose the ability to audit fair outcomes across groups. "
-                               "Best practice is to keep it for auditing while excluding it from model training.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Using Race as a predictive feature can embed historical inequities and violate institutional policy. "
-                               "Retain only for bias-audit.",
-                    'exclude': "Without Race you lose the ability to audit fair outcomes across groups. "
-                               "Best practice is to keep it for auditing while excluding it from model training.",
-                    'flag': correct,
-                },
-            },
-        },
-        'gender': {
-            'title': "Gender",
-            'def': "Student’s gender identity as reported during application. "
-                   "Protected class variable that raises ethical considerations.",
-            'feedback': {
-                'initial': {
-                    'include': "Directly modelling on Gender risks discriminatory interventions. Consider audit-only retention.",
-                    'exclude': "Eliminating Gender data removes a key lens for detecting gender-based disparities as-is outputs.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Directly modelling on Gender risks discriminatory interventions. Consider audit-only retention.",
-                    'exclude': "Eliminating Gender data removes a key lens for detecting gender-based disparities as-is outputs.",
-                    'flag': correct,
-                },
-            },
-        },
-        'age': {
-            'title': "Age",
-            'def': "Student’s age at enrollment. Flagged as protected class variable. "
-                   "Consider whether age-based predictions might disadvantage non-traditional students while recognizing "
-                   "that age can reflect meaningful differences in life circumstances.",
-            'feedback': {
-                'initial': {
-                    'include': "Age may correlate with persistence but also with protected status (non-traditional learners). "
-                               "Document equity safeguards or shift to audit-only use.",
-                    'exclude': "Excluding Age erases patterns relevant to adult learners and hampers fairness checks. "
-                               "Audit-only use is often a balanced choice.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Age may correlate with persistence but also with protected status (non-traditional learners). "
-                               "Document equity safeguards or shift to audit-only use.",
-                    'exclude': "Excluding Age erases patterns relevant to adult learners and hampers fairness checks. "
-                               "Audit-only use is often a balanced choice.",
-                    'flag': correct,
-                },
-            },
-        },
-        'pronouns': {
-            'title': "Preferred Pronouns",
-            'def': "Student-provided pronoun preference collected by campus climate office. "
-                   "Optional field with high missingness. Can affirm identity but is not a stable predictor of retention.",
-            'feedback': {
-                'initial': {
-                    'include': "Preferred Pronouns are not predictive of persistence and risk trivializing gender identity. "
-                               "Exclude or store only for awareness training, not analytics.",
-                    'exclude': correct,
-                    'flag': "Pronoun data lack completeness and standardization, limiting audit utility. "
-                             "Exclusion is usually appropriate.",
-                },
-                'final': {
-                    'include': "Preferred Pronouns are not predictive of persistence and risk trivializing gender identity. "
-                               "Exclude or store only for awareness training, not analytics.",
-                    'exclude': "Pronoun data lack completeness and standardization, limiting audit utility. "
-                               "Exclusion is usually appropriate.",
-                    'flag': correct,
-                },
-            },
-        },
-        'gpa': {
-            'title': "High School GPA",
-            'def': "Student’s high-school grade-point average, a common predictor of college success. "
-                   "This variable was unreliable due to reporting unreliability across high schools.",
-            'feedback': {
-                'initial': {
-                    'include': "High-school GPAs lack standardisation; predictive value may be swamped by noise. "
-                               "Consider excluding or flagging for quality remediation.",
-                    'exclude': "Removing High-School GPA sacrifices a widely used predictor. "
-                               "Could a scaled or percentile version salvage reliability?",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "High-school GPAs lack standardisation; predictive value may be swamped by noise. "
-                               "Consider excluding or flagging for quality remediation.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'scores': {
-            'title': "Test Scores",
-            'def': "Academic performance metrics from high school and standardised tests (SAT/ACT). "
-                   "Due to test-optional policies implemented during COVID, scores may be missing for many students. "
-                   "Creative solution to transform into a ‘test score submitted’ indicator leverages available "
-                   "information while addressing systematic gaps.",
-            'feedback': {
-                'initial': {
-                    'include': "Raw Test Scores are sparse post-COVID; treating missing as zero could bias results. "
-                               "A submission indicator or audit flag may be safer.",
-                    'exclude': "Dropping Test Scores ignores a potentially strong signal for the subset who submitted. "
-                               "Could you retain a binary ‘submitted’ flag instead?",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Raw Test Scores are sparse post-COVID; treating missing as zero could bias results. "
-                               "A submission indicator or audit flag may be safer.",
-                    'exclude': "Dropping Test Scores ignores a potentially strong signal for the subset who submitted. "
-                               "Could you retain a binary ‘submitted’ flag instead?",
-                    'flag': correct,
-                },
-            },
-        },
-        'midterms': {
-            'title': "Midterm Grades",
-            'def': "Preliminary academic performance indicators halfway through the term. "
-                   "Identified as valuable but not consistently available across courses.",
-            'feedback': {
-                'initial': {
-                    'include': "Mid-Term Grades appear only for certain courses, risking departmental bias. "
-                               "Flag for quality improvement or exclude.",
-                    'exclude': "Excluding Mid-Term Grades forfeits early academic-performance insight. "
-                               "Could selective inclusion or data-quality work make it viable?",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Mid-Term Grades appear only for certain courses, risking departmental bias. "
-                               "Flag for quality improvement or exclude.",
-                    'exclude': "Excluding Mid-Term Grades forfeits early academic-performance insight. "
-                               "Could selective inclusion or data-quality work make it viable?",
-                    'flag': correct,
-                },
-            },
-        },
-        'epr': {
-            'title': "Early Progress Reports",
-            'def': "Faculty-submitted assessments of student performance early in the semester. "
-                   "Reporting inconsistency means this potentially valuable early-warning indicator isn’t reliable enough "
-                   "to include.",
-            'feedback': {
-                'initial': {
-                    'include': "Sparse, faculty-dependent reporting could mislead the model. Flag for improvement or consider exclusion.",
-                    'exclude': "You lose a proven early-alert signal. Engage stakeholders to improve reporting rather "
-                               "than discard entirely.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Sparse, faculty-dependent reporting could mislead the model. Flag for improvement or consider exclusion.",
-                    'exclude': "You lose a proven early-alert signal. "
-                               "Engage stakeholders to improve reporting rather than discard entirely.",
-                    'flag': correct,
-                },
-            },
-        },
-        'printer': {
-            'title': "Dorm Printer Usage",
-            'def': "Weekly count of pages printed in residence-hall printers. "
-                   "Logs are missing whenever printers are offline; many students use personal or library printers instead.",
-            'feedback': {
-                'initial': {
-                    'include': "Printer logs cover only a subset of students and machines, yielding noisy, biased counts. "
-                               "Little theoretical link to persistence.",
-                    'exclude': "Standardising printer data would require major infrastructure changes—benefit unlikely to justify cost.",
-                    'flag': "Appropriate—the variable is weakly linked to retention and suffers systemic gaps.",
-                },
-                'final': {
-                    'include': "Printer logs cover only a subset of students and machines, yielding noisy, biased counts. "
-                               "Little theoretical link to persistence.",
-                    'exclude': correct,
-                    'flag': "Standardising printer data would require major infrastructure changes—benefit unlikely to justify cost.",
-                },
-            },
-        },
-        'legacy': {
-            'title': "Legacy Status",
-            'def': "Whether the student has family members who previously attended the university. "
-                   "May indicate stronger institutional ties.",
-            'feedback': {
-                'initial': {
-                    'include': "Legacy Status may encode privilege and could unfairly prioritise well-connected students. "
-                               "Document why its predictive gain outweighs equity concerns.",
-                    'exclude': "You removed a factor linked to institutional attachment. "
-                               "Could advisors design fair interventions if they knew a student lacked legacy ties?",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Legacy Status may encode privilege and could unfairly prioritise well-connected students. "
-                               "Document why its predictive gain outweighs equity concerns.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-        'athlete': {
-            'title': "Student Athlete Status",
-            'def': "Whether the student participates in university athletics. "
-                   "May indicate additional support structures but also time commitments.",
-            'feedback': {
-                'initial': {
-                    'include': "Athlete status already triggers dedicated advising; flagging athletes again may waste resources. "
-                               "Ensure interventions add value.",
-                    'exclude': "Athletes juggle academics and sport travel. "
-                               "Excluding this variable may hide a known risk group lacking time for coursework.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Athlete status already triggers dedicated advising; flagging athletes again may waste resources. "
-                               "Ensure interventions add value.",
-                    'exclude': "Athletes juggle academics and sport travel. "
-                               "Excluding this variable may hide a known risk group lacking time for coursework.",
-                    'flag': correct,
-                },
-            },
-        },
-        'firstgen': {
-            'title': "First Generation Status",
-            'def': "Indicates if the student is the first in their family to attend college; "
-                   "may reflect differences in familiarity with college processes.",
-            'feedback': {
-                'initial': {
-                    'include': "Good call—first-gen status supports equity-minded outreach. "
-                               "Be sure to explain positive, not deficit-based, interventions.",
-                    'exclude': "First-generation students often benefit from navigational support. "
-                               "Omitting this variable could undermine equity goals.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Good call—first-gen status supports equity-minded outreach. "
-                               "Be sure to explain positive, not deficit-based, interventions.",
-                    'exclude': "First-generation students often benefit from navigational support. "
-                               "Omitting this variable could undermine equity goals.",
-                    'flag': correct,
-                },
-            },
-        },
-        'distance': {
-            'title': "Distance From Home",
-            'def': "Calculated metric based on student’s home address and campus location; "
-                   "privacy-preserving alternative to ZIP codes.",
-            'feedback': {
-                'initial': {
-                    'include': "Distance correlates with homesickness and travel cost but offers limited intervention levers. "
-                               "Note whether actionable support exists (e.g., travel grants).",
-                    'exclude': "Ignoring Distance removes insight into geographically isolated students "
-                               "who may need community-building initiatives.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Distance correlates with homesickness and travel cost but offers limited intervention levers. "
-                               "Note whether actionable support exists (e.g., travel grants).",
-                    'exclude': "Ignoring Distance removes insight into geographically isolated students "
-                               "who may need community-building initiatives.",
-                    'flag': correct,
-                },
-            },
-        },
-        'credits': {
-            'title': "Credits After Add/Drop",
-            'def': "Credit hours the student is taking after the official add/drop deadline; "
-                   "may reflect adjustment to academic realities.",
-            'feedback': {
-                'initial': {
-                    'include': "Strong early signal of load management issues. Advisors can act quickly—solid choice.",
-                    'exclude': "Course-load changes are an actionable red flag. Excluding them weakens the model’s practical value.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Strong early signal of load management issues. Advisors can act quickly—solid choice.",
-                    'exclude': "Course-load changes are an actionable red flag. Excluding them weakens the model’s practical value.",
-                    'flag': correct,
-                },
-            },
-        },
-        'housing': {
-            'title': "Live On Campus or Commuter",
-            'def': "Housing status affects integration into campus life and access to resources.",
-            'feedback': {
-                'initial': {
-                    'include': "Useful and actionable—commuters may need remote-friendly support. "
-                               "Ensure interventions respect time and travel constraints.",
-                    'exclude': "Housing status strongly predicts engagement. Excluding it may mask differences in retention risk.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Useful and actionable—commuters may need remote-friendly support. "
-                               "Ensure interventions respect time and travel constraints.",
-                    'exclude': "Housing status strongly predicts engagement. Excluding it may mask differences in retention risk.",
-                    'flag': correct,
-                },
-            },
-        },
-        'residency': {
-            'title': "Residency (In-State / Out-of-State / International)",
-            'def': "Affects tuition rates and connection to campus.",
-            'feedback': {
-                'initial': {
-                    'include': "Residency drives cost burden; "
-                               "interventions must avoid stereotyping out-of-state students as less committed.",
-                    'exclude': "Cost differentials matter. Removing Residency could blunt financial-aid outreach to high-tuition groups.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Residency drives cost burden; "
-                               "interventions must avoid stereotyping out-of-state students as less committed.",
-                    'exclude': "Cost differentials matter. Removing Residency could blunt financial-aid outreach to high-tuition groups.",
-                    'flag': correct,
-                },
-            },
-        },
-        'origins': {
-            'title': "Urban / Rural / Suburban Origins",
-            'def': "Classification of student’s home community; derived from heuristics.",
-            'feedback': {
-                'initial': {
-                    'include': "Heuristic classification may mislabel students; validate definitions or risk noisy signals.",
-                    'exclude': "Campus adjustment often differs by origin. "
-                               "Excluding could overlook rural-to-urban transition challenges.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Heuristic classification may mislabel students; validate definitions or risk noisy signals.",
-                    'exclude': "Campus adjustment often differs by origin. "
-                               "Excluding could overlook rural-to-urban transition challenges.",
-                    'flag': correct,
-                },
-            },
-        },
-        'transfer': {
-            'title': "Transfer Status",
-            'def': "Whether the student transferred from another institution versus starting as a first-year.",
-            'feedback': {
-                'initial': {
-                    'include': "Transfer students face unique credit-articulation hurdles—actionable and equity-relevant.",
-                    'exclude': "You dropped a key subgroup with elevated departure risk. Advisors may miss needed support.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Transfer students face unique credit-articulation hurdles—actionable and equity-relevant.",
-                    'exclude': "You dropped a key subgroup with elevated departure risk. Advisors may miss needed support.",
-                    'flag': correct,
-                },
-            },
-        },
-        'extracurricular': {
-            'title': "Extracurricular Involvement",
-            'def': "Participation in clubs or other non-academic activities; data collection relies on self-reporting.",
-            'feedback': {
-                'initial': {
-                    'include': "Self-report bias and missingness limit reliability; "
-                               "document caveats to avoid overstating predictive value.",
-                    'exclude': "Engagement predicts belonging; consider flagging data-quality issues rather than discarding outright.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Self-report bias and missingness limit reliability; "
-                               "document caveats to avoid overstating predictive value.",
-                    'exclude': "Engagement predicts belonging; consider flagging data-quality issues rather than discarding outright.",
-                    'flag': correct,
-                },
-            },
-        },
-        'wi_fi': {
-            'title': "Campus-Wi-Fi Gaming Network Participation",
-            'def': "Binary flag—student devices connected to high-traffic gaming ports for ≥ 5 hours/week during evenings.",
-            'feedback': {
-                'initial': {
-                    'include': "Correlation to retention unproven; risk of pathologising hobby behaviour. "
-                               "Provide theoretical justification or exclude.",
-                    'exclude': "Sensible—no established link to academic persistence.",
-                    'flag': correct,
-                },
-                'final': {
-                    'include': "Correlation to retention unproven; risk of pathologising hobby behaviour. "
-                               "Provide theoretical justification or exclude.",
-                    'exclude': correct,
-                    'flag': correct,
-                },
-            },
-        },
-    }
-    return (
-        button_labels_by_task,
-        correct,
-        textbox_text_boilerplate,
-        variable_details,
-    )
-
-
-@app.cell(hide_code=True)
-def variable_details_2(
-    age,
-    athlete,
-    credits,
-    distance,
-    efc,
-    epr,
-    extracurricular,
-    firstgen,
-    gender,
-    gpa,
-    housing,
-    legacy,
-    merit,
-    midterms,
-    origins,
-    pell,
-    pell_plus,
-    printer,
-    pronouns,
-    race,
-    residency,
-    sai,
-    scores,
-    task_1_getters,
-    task_2_getters,
-    task_3_getters,
-    task_4_getters,
-    transfer,
-    unmet,
-    wi_fi,
-):
-    #more variable details
-    #isolated due to marimo cycle issues
-
-    variables_by_task = {
-        1: {
-            "variables": [pell, efc, sai, unmet, merit, pell_plus],
-            "header": "Regulatory Gate",
-            "getter": task_1_getters,
-        },
-        2: {
-            "variables": [race, gender, age, pronouns],
-            "header": "Protected-Attribute Gate",
-            "getter": task_2_getters,
-        },
-        3: {
-            "variables": [gpa, scores, midterms, epr, printer],
-            "header": "Data-Reliability Gate",
-            "getter": task_3_getters,
-        },
-        4: {
-            "variables": [legacy, athlete, firstgen, distance, credits, housing, residency, origins, transfer, extracurricular, wi_fi],
-            "header": "Equity & Actionability Gate",
-            "getter": task_4_getters,
-        },
-    }
-    return (variables_by_task,)
 
 
 @app.cell(hide_code=True)
