@@ -88,6 +88,12 @@ def test_record_flip_toggles_face_and_remembers_opened():
     assert opens[0](frozenset({"story"})) == {"story"}
 
 
+def test_reflection_prompts_reconcile_with_prediction():
+    assert len(nb.REFLECTION_PROMPTS) == 3
+    assert "prediction" in nb.REFLECTION_PROMPTS[0]
+    assert not any("feedback" in p for p in nb.REFLECTION_PROMPTS)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

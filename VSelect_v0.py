@@ -45,6 +45,15 @@ with app.setup:
     }
 
 
+    REFLECTION_PROMPTS = [
+        "Which variables from your prediction made it into your model, and which did you end up excluding or "
+        "flagging? What changed your mind?",
+        "Which variables you said \"can't be used\" turned out to be in the data dictionary, and how did you handle "
+        "them? Did the dictionary contain restricted variables you hadn't anticipated?",
+        "Your model uses the variables you included. Is that enough for advisors to act on? What trade-off did you "
+        "make between usefulness and protecting students?",
+    ]
+
     CARDS = {
         'story': {
             "title": 'The story so far',
@@ -897,7 +906,7 @@ def views(mo):
     def variable_view(name, decisions, reasons, controls, submitted):
         title, choice = VARIABLES[name]["title"], decisions[name]
         if submitted:
-            return mo.md(f"**{title}**: {decision_line(name, choice)} {reasons[name].strip() or '*No justification.*'}")
+            return mo.md(f"**{title}**: {decision_line(name, choice)} {html.escape(reasons[name].strip()) or '*No justification.*'}")
         picker = mo.vstack([mo.md(VARIABLES[name]["definition"]), mo.hstack([controls[name][c] for c in CHOICES])])
         return mo.vstack([
             mo.accordion({title: picker}),
@@ -1017,51 +1026,82 @@ def review_wave_buttons(get_prediction, mo):
 
 
 @app.cell
-def brief_inputs(mo):
+def explain_inputs(mo):
     student_name = mo.ui.text(label="Your name", full_width=True)
     advisor_notes = mo.ui.text_area(label="Notes for advisors and compliance staff (optional)", rows=5, full_width=True)
-    reflection_prompts = [
-        "Which decision was hardest to make, and what made it hard?",
-        "Your model uses the variables you included. Is that enough for advisors to act on? "
-        "What trade-off did you make between usefulness and protecting students?",
-        "After reading the final feedback, which decision would you change, and why?",
-    ]
-    reflections = mo.ui.array([mo.ui.text_area(rows=5, full_width=True) for _ in reflection_prompts])
-    return advisor_notes, reflection_prompts, reflections, student_name
+    reflections = mo.ui.array([mo.ui.text_area(rows=5, full_width=True) for _ in REFLECTION_PROMPTS])
+    submit_button = mo.ui.run_button(label="Submit for evaluation", kind="success")
+    return advisor_notes, reflections, student_name, submit_button
 
 
 @app.cell
-def product(advisor_notes, brief_rows, mo, student_name):
-    _missing_decision = sum(1 for r in brief_rows if r[1] == "No Selection")
-    _missing_why = sum(1 for r in brief_rows if r[1] != "No Selection" and not r[3])
-    _status = (
-        mo.md("✅ **Every variable has a decision and a justification.** Your brief is complete.").callout("success")
-        if not (_missing_decision or _missing_why)
-        else mo.md(
-            f"**Your brief is not complete yet:** {_missing_decision} variable(s) have no decision and "
-            f"{_missing_why} decision(s) have no justification. Use the **Review Wave** buttons above to finish."
-        ).callout("warn")
+def submit_action(get_decisions, mo, reflections, set_submitted, submit_button):
+    _ready = can_submit(get_decisions(), reflections.value)
+    if submit_button.value and _ready:
+        set_submitted(True)
+    submit_warning = (
+        mo.callout(mo.md("Answer all three reflection questions before you submit."), kind="warn")
+        if submit_button.value and not _ready
+        else ""
     )
-    mo.vstack([
-        mo.md("## Your Variable Selection Brief"),
+    return (submit_warning,)
+
+
+@app.cell(hide_code=True)
+def explain(
+    advisor_notes,
+    get_decisions,
+    get_prediction,
+    get_reasons,
+    get_submitted,
+    mo,
+    reflections,
+    student_name,
+    submit_button,
+    submit_warning,
+):
+    mo.stop(get_prediction() is None)
+    mo.stop(not all_decided(get_decisions()), mo.md("*Decide every variable to continue to Stage 3.*"))
+    _missing = missing_reasons(get_decisions(), get_reasons())
+    _header = [
+        mo.md("# Stage 3 · Explain"),
         mo.md(
-            "This is the product advisors and compliance staff will review before any modelling starts. "
-            "It contains every decision and justification from the table above, plus your notes and reflection below. "
-            "Download it at the bottom of the page and submit the file as instructed."
+            "Reconcile what you decided with what you predicted before you saw the data dictionary. "
+            "Your answers here go into your Variable Selection Brief."
         ),
-        _status,
-        student_name,
-        advisor_notes,
-    ])
-    return
-
-
-@app.cell
-def learner_reflection(include_count, mo, reflection_prompts, reflections):
-    mo.vstack(
-        [mo.md("## Learner Reflection"), mo.md(f"*Your model currently uses **{include_count}** variable(s).*")]
-        + [mo.vstack([mo.md(f"**{i}. {q}**"), box]) for i, (q, box) in enumerate(zip(reflection_prompts, reflections), 1)]
-    )
+        mo.callout(mo.vstack([mo.md("🔒 **Your locked prediction**"), mo.Html(prediction_html(get_prediction()))]), kind="neutral"),
+    ]
+    if get_submitted():
+        _answers = [
+            mo.md(f"**{i}. {q}**\n\n{html.escape(a.strip())}")
+            for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections.value), 1)
+        ]
+        _output = mo.vstack(_header + [mo.md(f"**Name:** {html.escape(student_name.value.strip()) or '*not given*'}")] + _answers + [
+            mo.md(f"**Notes for advisors and compliance staff:** {html.escape(advisor_notes.value.strip()) or '*none*'}"),
+            mo.callout(mo.md("✅ **Submitted.** Your choices and reflection are locked."), kind="success"),
+        ])
+    else:
+        _reasons_note = (
+            mo.callout(
+                mo.md(f"**{len(_missing)} decision(s) have no justification.** You can still submit, "
+                      "but advisors will read your brief. Use the **Review Wave** buttons above to add them."),
+                kind="warn",
+            )
+            if _missing
+            else ""
+        )
+        _questions = [
+            mo.vstack([mo.md(f"**{i}. {q}**"), box])
+            for i, (q, box) in enumerate(zip(REFLECTION_PROMPTS, reflections), 1)
+        ]
+        _output = mo.vstack(_header + [student_name] + _questions + [
+            advisor_notes,
+            _reasons_note,
+            mo.md("Submitting locks every choice and reflection, then shows your evaluation."),
+            submit_button,
+            submit_warning,
+        ])
+    _output
     return
 
 
@@ -1071,7 +1111,6 @@ def download_brief(
     brief_rows,
     include_count,
     mo,
-    reflection_prompts,
     reflections,
     student_name,
 ):
@@ -1095,7 +1134,7 @@ def download_brief(
     <h2>Notes for advisors and compliance staff</h2>
     <p>{_para(advisor_notes.value)}</p>
     <h2>Learner reflection</h2>
-    {"".join(f"<h3>{i}. {html.escape(q)}</h3><p>{_para(a)}</p>" for i, (q, a) in enumerate(zip(reflection_prompts, reflections.value), 1))}
+    {"".join(f"<h3>{i}. {html.escape(q)}</h3><p>{_para(a)}</p>" for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections.value), 1))}
     </body></html>"""
 
     _slug = "".join(c if c.isalnum() else "-" for c in _name.lower()).strip("-")
