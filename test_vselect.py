@@ -125,7 +125,7 @@ def test_key_has_no_safe_default():
 def test_approved_key_revision():
     approved = {
         "firstgen": ["include"], "credits": ["include"], "housing": ["include"], "transfer": ["include"],
-        "efc": ["exclude"], "sai": ["exclude"], "unmet": ["exclude"], "pronouns": ["exclude"], "wi_fi": ["exclude"],
+        "efc": ["exclude"], "sai": ["exclude"], "unmet": ["exclude", "flag"], "pronouns": ["exclude"], "wi_fi": ["exclude"],
     }
     for name, correct in approved.items():
         assert nb.VARIABLES[name]["correct"] == correct, name

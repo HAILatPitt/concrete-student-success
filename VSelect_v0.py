@@ -173,17 +173,13 @@ with app.setup:
                 'Gap between the cost of attendance and the student’s available resources, calculated '
                 'from the aid package and the Student Aid Index. A strong financial-stress signal.'
             ),
-            "correct": ['exclude'],
+            "correct": ['exclude', 'flag'],
             "why": {
                 'include': (
                     "Unmet Need is the school's own aid record, governed by FERPA, but it is built on the "
                     'Student Aid Index, and next to cost of attendance and aid amounts it can reveal that '
                     'FAFSA figure. It also flags students for being poor rather than for anything advisors '
                     'can change.'
-                ),
-                'flag': (
-                    'Unmet Need leans on FAFSA data and measures financial hardship directly, so a model '
-                    'using it would flag students for being poor. Keep it out of the model.'
                 ),
             },
             "consequence": {},
