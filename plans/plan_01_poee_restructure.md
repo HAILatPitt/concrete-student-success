@@ -308,7 +308,26 @@ def test_every_wrong_choice_has_consequence():
 
 ## Key revision
 
-*(Filled in by Task 6.)*
+*Draft by Claude, 2026-10-20. Waiting for maintainer approval (Task 6, Step 2).*
+
+**Principle.** **Include** is correct when a variable is reliable, actionable, lawful and not a protected attribute. **Flag** is correct only where a real open question remains. **Exclude** is correct where use is barred or worthless. A variable accepts a second answer only when that answer is also defensible.
+
+| Variable | Current correct | Proposed correct | Reason |
+|---|---|---|---|
+| First Generation Status | flag | **include** | Not protected; the intervention (navigational support) is known. The current Include text already says "Good call". |
+| Credits After Add/Drop | flag | **include** | Registrar data: reliable and actionable. The current Include text says "solid choice". |
+| Live On Campus or Commuter | flag | **include** | Reliable and actionable (commuter-friendly support). The current Include text says "Useful and actionable". |
+| Transfer Status | flag | **include** | Known higher-risk group with a concrete intervention (credit articulation). The current Include text says "actionable". |
+| Expected Family Contribution (EFC) | exclude, flag | **exclude** | FAFSA-derived and retired; a review adds nothing (the original initial feedback said so). Law to be confirmed in Task 7. |
+| Student Aid Index (SAI) | exclude, flag | **exclude** | FAFSA-derived, with incomplete history. Law to be confirmed in Task 7. |
+| Unmet Need | exclude, flag | **exclude** | Built from FAFSA-derived inputs. Law to be confirmed in Task 7. |
+| Preferred Pronouns | flag | **exclude** | Not predictive, high missingness, weak audit value. The current Exclude text already says "usually appropriate". |
+| Campus Wi-Fi Gaming | exclude, flag | **exclude** | Network-surveillance data with no theory linking it to persistence. Nothing for a review to rescue. |
+| Midterm Grades | flag | flag (unchanged) | Rewrite the Include "why" text, which currently says "flag … or exclude" though Exclude is graded wrong. |
+| Early Progress Reports | flag | flag (unchanged) | Rewrite the Include "why" text, which currently says "or consider exclusion". |
+| All other 15 | — | unchanged | — |
+
+**Effect.** Flagging everything drops from 25/26 to 16/26. Excluding everything scores 11/26, and including everything scores 4/26. A defensible model now has four inputs. New "why" texts are needed for the newly wrong choices: Flag on the four Include variables, Flag on EFC, SAI, Unmet Need and Wi-Fi, and Flag on Pronouns.
 
 ## Sources
 
