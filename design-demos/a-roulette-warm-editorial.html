@@ -1,0 +1,169 @@
+<!--
+  Logic: roulette. Drawn style: Warm Editorial.
+  Anchor: Penguin / Pelican paperbacks (Hans Schmoller's tri-band covers, Jan Tschichold's Penguin Composition Rules) and Anthropic's editorial look.
+  Palette (sampled from Pitt brand, converged in oklch to print-like low chroma):
+    accent  ochre-terracotta  oklch(0.50 0.105 52)   from Pitt gold #FFB81C, darkened and pulled toward red-earth so it reads as ink on paper (5.6:1 on paper)
+    ink     navy ink          oklch(0.28 0.055 262)  from Pitt navy #003163, chroma cut by ~60% so it reads as printer's ink, not a UI blue
+    paper   warm series hue 80: 0.975/0.012 (paper), 0.945/0.020 (paper-deep), 0.86/0.020 (rule), 0.50/0.015 (muted text, 5.9:1 on paper)
+    Justification: Pitt's gold and navy survive as an ochre ink and a navy ink on uncoated paper, which keeps the brand recognisable while giving the serious, book-like register the subject needs.
+  Fonts: Newsreader (display, italic for chapter marks), Source Sans 3 (body and labels). Textareas and button stay marimo-native.
+  Form comes from: the learner's own deliverable is a printed one-page brief, so the opening is set as that brief's front matter, three numbered paperback "chapters" (prologue, role, assignment) whose back face is the opened page, and Predict is the first worksheet page with a running head and folio.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Variable selection scenario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* Mock only: marimo page shell. Not part of the delivered blocks. */
+  .mo-page { margin: 0; background: #fff; min-height: 900px; font-family: "PT Sans", system-ui, sans-serif; }
+  .mo-col { width: 740px; margin: 0 auto; padding: 56px 0 80px; }
+
+  /* ---- ConCReTE block styles (the one <style> block per block) ---- */
+  .we {
+    --accent: oklch(0.50 0.105 52);
+    --ink: oklch(0.28 0.055 262);
+    --paper: oklch(0.975 0.012 80);
+    --paper-deep: oklch(0.945 0.020 80);
+    --rule: oklch(0.86 0.020 80);
+    --muted: oklch(0.50 0.015 80);
+    color: var(--ink);
+    font-family: "Source Sans 3", "PT Sans", system-ui, sans-serif;
+  }
+  .we-kicker { font: 600 12px/1 "Source Sans 3", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .we-title { font: 400 44px/1.08 "Newsreader", Georgia, serif; letter-spacing: -.01em; margin: 10px 0 0; color: var(--ink); }
+
+  .we-cards { display: grid; grid-template-columns: repeat(3, 224px); justify-content: space-between; margin-top: 36px; perspective: 900px; }
+  .we-card {
+    box-sizing: border-box; width: 224px; height: 272px; overflow: hidden;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 2px;
+    display: flex; flex-direction: column; cursor: pointer; text-align: left;
+    box-shadow: 0 1px 0 var(--rule), 0 8px 18px -14px oklch(0.28 0.055 262 / .35);
+  }
+  .we-card:hover { border-color: var(--accent); }
+
+  /* Front: paperback tri-band. Band, title panel, band. */
+  .we-band { height: 54px; background: var(--accent); display: flex; align-items: center; justify-content: center; }
+  .we-band-b { height: 40px; background: var(--accent); margin-top: auto; display: flex; align-items: center; justify-content: center; }
+  .we-band span, .we-band-b span { font: 600 12px/1 "Source Sans 3", sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--paper); }
+  .we-front-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 20px; }
+  .we-numeral { font: italic 400 22px/1 "Newsreader", serif; color: var(--accent); }
+  .we-front-title { font: 500 25px/1.12 "Newsreader", serif; color: var(--ink); margin: 10px 0 0; }
+  .we-hair { width: 28px; height: 1px; background: var(--ink); opacity: .5; margin: 14px auto 0; }
+
+  /* Back: the opened page. Plays on re-render. */
+  .we-back { padding: 18px 18px 14px; background: var(--paper); animation: we-flip 400ms cubic-bezier(.2,.7,.3,1) both; transform-origin: center; }
+  @keyframes we-flip { from { transform: rotateY(90deg); opacity: .4; } to { transform: rotateY(0deg); opacity: 1; } }
+  .we-back-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--rule); padding-bottom: 7px; }
+  .we-back-head b { font: 500 16px/1.1 "Newsreader", serif; color: var(--ink); }
+  .we-back-head i { font: italic 400 15px/1 "Newsreader", serif; color: var(--accent); }
+  .we-back p { font: 400 13.5px/1.42 "Source Sans 3", sans-serif; color: var(--ink); margin: 9px 0 0; hyphens: auto; }
+  .we-back p::first-letter { font: 500 30px/.8 "Newsreader", serif; float: left; color: var(--accent); margin: 3px 4px 0 0; }
+
+  .we-gate { margin: 22px 0 0; text-align: center; font: italic 400 15px/1.4 "Newsreader", serif; color: var(--muted); }
+  .we-gate::before, .we-gate::after { content: ""; display: inline-block; width: 36px; height: 1px; background: var(--rule); vertical-align: middle; margin: 0 12px; }
+
+  /* Stage header: running head + chapter title, reused for all four stages */
+  .we-stage { margin-top: 64px; }
+  .we-runhead { display: flex; justify-content: space-between; font: 600 12px/1 "Source Sans 3", sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); border-top: 2px solid var(--ink); padding-top: 9px; }
+  .we-runhead span:first-child { color: var(--accent); }
+  .we-stage-title { font: 400 34px/1.1 "Newsreader", serif; margin: 18px 0 0; color: var(--ink); }
+  .we-stage-title em { font-style: italic; color: var(--accent); }
+  .we-steps { display: flex; gap: 18px; margin-top: 10px; font: 400 13px/1 "Source Sans 3", sans-serif; color: var(--muted); }
+  .we-steps b { color: var(--ink); font-weight: 600; border-bottom: 1px solid var(--accent); padding-bottom: 3px; }
+
+  .we-prompt { margin-top: 22px; background: var(--paper); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 18px 22px; font: 400 17px/1.55 "Newsreader", serif; color: var(--ink); }
+  .we-prompt .n { font-style: italic; color: var(--accent); }
+  .we-prompt strong { font-weight: 500; }
+
+  .we-field { margin-top: 26px; }
+  .we-label { display: grid; grid-template-columns: 34px 1fr; align-items: baseline; margin-bottom: 8px; }
+  .we-label i { font: italic 400 20px/1 "Newsreader", serif; color: var(--accent); }
+  .we-label span { font: 600 14px/1.35 "Source Sans 3", sans-serif; color: var(--ink); }
+  .we-field-body { padding-left: 34px; }
+
+  .we-lock { margin-top: 26px; padding-left: 34px; display: flex; align-items: center; gap: 14px; }
+
+  /* marimo-native stand-ins (not restylable in production) */
+  .mo-textarea { box-sizing: border-box; width: 100%; border: 1px solid #d4d4d8; border-radius: 6px; font: 14px/1.4 system-ui, sans-serif; padding: 8px 10px; resize: vertical; background: #fff; color: #18181b; }
+  .mo-button { background: #16a34a; color: #fff; font: 13px/1 system-ui, sans-serif; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+</style>
+</head>
+<body class="mo-page">
+<main class="mo-col">
+
+  <!-- Block: title -->
+  <header class="we">
+    <div class="we-kicker">ConCReTE · Student Success Analytics</div>
+    <h1 class="we-title">Variable selection scenario</h1>
+  </header>
+
+  <!-- Block: three cards. Each card is the label of a marimo button. -->
+  <section class="we">
+    <div class="we-cards">
+      <!-- Card 1: flipped (back face) -->
+      <div class="we-card" role="button">
+        <div class="we-back">
+          <div class="we-back-head"><b>The story so far</b><i>i</i></div>
+          <p>Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the federal limits on using FAFSA data.</p>
+        </div>
+      </div>
+      <!-- Card 2: front -->
+      <div class="we-card" role="button">
+        <div class="we-band"><span>Student Success</span></div>
+        <div class="we-front-body">
+          <div class="we-numeral">ii</div>
+          <div class="we-front-title">Your role</div>
+          <div class="we-hair"></div>
+        </div>
+        <div class="we-band-b"><span>click to open</span></div>
+      </div>
+      <!-- Card 3: front -->
+      <div class="we-card" role="button">
+        <div class="we-band"><span>Student Success</span></div>
+        <div class="we-front-body">
+          <div class="we-numeral">iii</div>
+          <div class="we-front-title">What you deliver</div>
+          <div class="we-hair"></div>
+        </div>
+        <div class="we-band-b"><span>click to open</span></div>
+      </div>
+    </div>
+    <p class="we-gate">Open all three cards to begin.</p>
+  </section>
+
+  <!-- Block: stage header (pattern reused by all four stages) -->
+  <section class="we we-stage">
+    <div class="we-runhead"><span>Variable Selection Brief</span><span>Stage 1 of 4</span></div>
+    <h2 class="we-stage-title"><em>Stage 1</em> · Predict</h2>
+    <div class="we-steps"><b>Predict</b><span>Observe</span><span>Explain</span><span>Evaluate</span></div>
+
+    <div class="we-prompt">
+      Before you see the university's data dictionary, write down from your own knowledge: <span class="n">(1)</span> variables that could predict a student stopping out, each with a one-line reason; <span class="n">(2)</span> variables the university probably holds but should not use, each with the rule or concern that stops it. <strong>Once you lock your prediction it cannot be changed.</strong> You will come back to it at the end.
+    </div>
+  </section>
+
+  <!-- marimo-native: textarea 1 with surrounding label -->
+  <div class="we we-field">
+    <div class="we-label"><i>1</i><span>Variables that could predict a student stopping out</span></div>
+    <div class="we-field-body"><textarea class="mo-textarea" rows="5"></textarea></div>
+  </div>
+
+  <!-- marimo-native: textarea 2 with surrounding label -->
+  <div class="we we-field">
+    <div class="we-label"><i>2</i><span>Variables the university probably holds but should not use (and why)</span></div>
+    <div class="we-field-body"><textarea class="mo-textarea" rows="5"></textarea></div>
+  </div>
+
+  <!-- marimo-native: button -->
+  <div class="we we-lock">
+    <button class="mo-button">Lock my prediction</button>
+  </div>
+
+</main>
+</body>
+</html>

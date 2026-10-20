@@ -74,10 +74,23 @@ def test_card_backs_name_no_variables():
         assert not named, (c["title"], named)
 
 
-def test_card_html_shows_one_face():
-    front, back = nb.card_html("role", False), nb.card_html("role", True)
-    assert "Your role" in front and nb.CARDS["role"]["back"] not in front
-    assert nb.CARDS["role"]["back"] in back
+def test_card_html_carries_both_faces():
+    out = nb.card_html("role")
+    assert "Your role" in out and "click to open" in out.lower() and nb.CARDS["role"]["back"] in out
+    assert "var(--ss-front" in out and "var(--ss-back" in out
+
+
+def test_card_slot_style_picks_the_face():
+    front, back = nb.card_slot_style(False), nb.card_slot_style(True)
+    assert (front["--ss-front"], front["--ss-back"]) == ("flex", "none")
+    assert (back["--ss-front"], back["--ss-back"]) == ("none", "block")
+    assert front["height"] == back["height"]
+
+
+def test_stage_header_marks_current_stage():
+    out = nb.stage_header_html(2)
+    assert "Stage 2 of 4" in out and "Observe" in out
+    assert out.count('class="ss-step now"') == 1 and 'class="ss-step now">Observe' in out
 
 
 def test_record_flip_toggles_face_and_remembers_opened():
@@ -149,6 +162,18 @@ def test_wrapup_prompt_stops_offering_revision_after_submit():
     assert "revise" in nb.wrapup_prompt(4, submitted=False)
     locked = nb.wrapup_prompt(1, submitted=True)
     assert "revise" not in locked and "1 variable " in locked
+
+
+def test_record_field_passes_a_plain_function_updater():
+    import types
+    seen = []
+    nb.record_field(seen.append, "r2", "my answer")
+    assert isinstance(seen[0], types.FunctionType)
+    assert seen[0]({"r1": "a", "r2": ""}) == {"r1": "a", "r2": "my answer"}
+
+
+def test_reflections_of_reads_in_prompt_order():
+    assert nb.reflections_of({"r3": "c", "r1": "a", "r2": "b", "name": "x"}) == ["a", "b", "c"]
 
 
 if __name__ == "__main__":

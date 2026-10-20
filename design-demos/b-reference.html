@@ -1,0 +1,261 @@
+<!doctype html>
+<!--
+  Direction B: real-world reference
+  Logic: transfer the design language of one award-winning explanatory interactive.
+  Anchor: The New York Times, The Upshot, "You Draw It: How Family Income Predicts Children's College Chances"
+          (Gregor Aisch, Amanda Cox, Kevin Quealy, 28 May 2015). Best of Show (digital), Malofiej 24, 2016.
+          https://www.nytimes.com/interactive/2015/05/28/upshot/you-draw-it-how-family-income-affects-childrens-college-chances.html
+  What is borrowed: predict-before-reveal (reader commits a guess before seeing data); Franklin Gothic
+          kickers and chart labels over a serif headline and body; flat white field, hairline rules, faint
+          chart gridlines marking the blank area the reader fills; small numbered annotation markers;
+          one bright colour reserved for "your guess", dark ink for everything the source supplies.
+  Palette (sampled from Pitt brand, converged in oklch):
+          gold  #FFB81C  oklch(0.83 0.17 80)   - reader's own marks only (fills, markers, never text)
+          navy  #003594  oklch(0.36 0.17 262)  - kickers, rules, stage axis (#003163 for hover/ink-dark)
+          neutral series, hue 260, chroma 0.006-0.012:
+            ink   oklch(0.24 0.012 260)  text
+            mid   oklch(0.47 0.010 260)  secondary text (7:1 on white)
+            rule  oklch(0.86 0.006 260)  hairlines
+            grid  oklch(0.94 0.004 260)  chart gridlines
+            paper oklch(0.975 0.006 85)  open-card face
+          Justification: like the Upshot piece, gold marks only what the learner contributes and navy
+          marks what the case supplies, so colour tells you whose words you are reading.
+  Fonts: Libre Franklin (kickers, labels, card fronts, back text; open revival of Franklin Gothic, the
+          Upshot's chart face) + Lora (title, card titles, prompt; marimo's heading face, standing in
+          for Cheltenham/Imperial). Textareas and button stay marimo-native.
+  Form comes from: the Predict stage is the "You Draw It" move itself (commit your guess before the
+          data is shown), so the cards and writing boxes are drawn as the empty, gridded chart area
+          awaiting the reader's own line, and the stage header is a four-tick x-axis.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variable selection scenario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<style>
+  .ss {
+    --gold: #FFB81C;
+    --navy: #003594;
+    --navy-dk: #003163;
+    --ink: oklch(0.24 0.012 260);
+    --mid: oklch(0.47 0.010 260);
+    --rule: oklch(0.86 0.006 260);
+    --grid: oklch(0.94 0.004 260);
+    --paper: oklch(0.975 0.006 85);
+    --sans: "Libre Franklin", "Franklin Gothic Medium", "PT Sans", sans-serif;
+    --serif: "Lora", Georgia, serif;
+    width: 740px;
+    margin: 56px auto 80px;
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+  .ss-kicker {
+    font: 600 12px/1 var(--sans);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .ss-title {
+    font: 500 40px/1.1 var(--serif);
+    letter-spacing: -.01em;
+    margin: 10px 0 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  /* cards: three identical boxes, equal 34px gaps */
+  .ss-cards { display: grid; grid-template-columns: repeat(3, 224px); gap: 34px; }
+  .ss-card {
+    box-sizing: border-box;
+    width: 224px; height: 272px;
+    padding: 18px 18px 16px;
+    border: 1px solid var(--rule);
+    background: #fff;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  /* front: the blank, gridded chart area waiting for the reader's line */
+  .ss-front {
+    background-image:
+      linear-gradient(#fff 70px, transparent 70px),
+      repeating-linear-gradient(var(--grid) 0 1px, transparent 1px 34px);
+  }
+  .ss-front:hover { border-color: var(--navy); }
+  .ss-num {
+    font: 700 12px/1 var(--sans);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--navy);
+    display: flex; justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--navy);
+  }
+  .ss-front h3 {
+    font: 500 24px/1.18 var(--serif);
+    margin: 18px 0 0;
+    background: #fff;
+    align-self: flex-start;
+    padding-right: 6px;
+  }
+  .ss-open {
+    margin-top: auto;
+    font: 500 12px/1 var(--sans);
+    color: var(--mid);
+    display: flex; align-items: center; gap: 8px;
+    background: #fff;
+    align-self: flex-start;
+    padding: 4px 6px 0 0;
+  }
+  .ss-open::before {           /* the dashed "draw here" stroke from the reference */
+    content: ""; width: 28px; border-top: 2px dashed var(--gold);
+  }
+  /* back face */
+  .ss-back {
+    background: var(--paper);
+    border-color: var(--navy);
+    animation: ss-flip 400ms cubic-bezier(.2,.7,.3,1) both;
+    transform-origin: 50% 50%;
+  }
+  .ss-back p {
+    font: 400 13px/1.5 var(--sans);
+    margin: 12px 0 0;
+    color: var(--ink);
+  }
+  @keyframes ss-flip {
+    from { transform: perspective(800px) rotateY(90deg); }
+    to   { transform: perspective(800px) rotateY(0deg); }
+  }
+  .ss-hint {
+    font: 400 13px/1 var(--sans);
+    color: var(--mid);
+    margin: 18px 0 0;
+  }
+  .ss-hint b { font-weight: 600; color: var(--ink); }
+
+  /* stage header: reusable four-tick axis */
+  .ss-stage { margin-top: 64px; }
+  .ss-axis {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--ink);
+    margin-bottom: 22px;
+  }
+  .ss-tick {
+    position: relative;
+    padding-top: 10px;
+    font: 500 12px/1 var(--sans);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--mid);
+  }
+  .ss-tick::before {
+    content: ""; position: absolute; left: 0; top: -1px;
+    width: 1px; height: 7px; background: var(--ink);
+  }
+  .ss-tick.is-on { color: var(--navy); font-weight: 700; }
+  .ss-tick.is-on::after {
+    content: ""; position: absolute; left: 0; right: 0; top: -3px;
+    height: 5px; background: var(--gold);
+  }
+  .ss-stage h2 {
+    font: 500 30px/1.15 var(--serif);
+    margin: 0 0 14px;
+  }
+  .ss-prompt {
+    font: 400 17px/1.6 var(--serif);
+    margin: 0 0 30px;
+    max-width: 680px;
+  }
+  .ss-m {               /* numbered annotation marker */
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--gold); color: var(--ink);
+    font: 700 12px/1 var(--sans);
+    vertical-align: 2px;
+    margin-right: 2px;
+  }
+  .ss-field { margin-bottom: 24px; }
+  .ss-label {
+    display: flex; align-items: center; gap: 10px;
+    font: 600 14px/1.3 var(--sans);
+    margin-bottom: 8px;
+  }
+  .ss-label .ss-m { vertical-align: 0; margin: 0; flex: none; }
+  .ss-lock {
+    display: flex; align-items: center; gap: 14px;
+    padding-top: 16px; border-top: 1px solid var(--rule);
+    font: 400 13px/1.4 var(--sans); color: var(--mid);
+  }
+
+  /* marimo-native stand-ins (not restylable in the notebook) */
+  .mo-textarea {
+    box-sizing: border-box; width: 100%;
+    border: 1px solid #d4d4d8; border-radius: 6px;
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 8px 10px; resize: vertical; display: block;
+  }
+  .mo-btn {
+    background: #16a34a; color: #fff; border: 0; border-radius: 6px;
+    font: 500 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 9px 14px; cursor: pointer;
+  }
+</style>
+
+<main class="ss">
+  <div class="ss-kicker">ConCReTE · Student Success</div>
+  <h1 class="ss-title">Variable selection scenario</h1>
+
+  <div class="ss-cards">
+    <!-- card 1: flipped (back face) -->
+    <div class="ss-card ss-back">
+      <div class="ss-num"><span>01</span><span>The story so far</span></div>
+      <p>Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the federal limits on using FAFSA data.</p>
+    </div>
+    <!-- card 2: front -->
+    <div class="ss-card ss-front">
+      <div class="ss-num"><span>02</span></div>
+      <h3>Your role</h3>
+      <div class="ss-open">click to open</div>
+    </div>
+    <!-- card 3: front -->
+    <div class="ss-card ss-front">
+      <div class="ss-num"><span>03</span></div>
+      <h3>What you deliver</h3>
+      <div class="ss-open">click to open</div>
+    </div>
+  </div>
+  <p class="ss-hint">Open all three cards to begin.</p>
+
+  <section class="ss-stage">
+    <div class="ss-axis" aria-label="Stages">
+      <div class="ss-tick is-on">Predict</div>
+      <div class="ss-tick">Observe</div>
+      <div class="ss-tick">Explain</div>
+      <div class="ss-tick">Evaluate</div>
+    </div>
+    <h2>Stage 1 · Predict</h2>
+    <p class="ss-prompt">Before you see the university's data dictionary, write down from your own knowledge: <span class="ss-m">1</span> variables that could predict a student stopping out, each with a one-line reason; <span class="ss-m">2</span> variables the university probably holds but should not use, each with the rule or concern that stops it. Once you lock your prediction it cannot be changed. You will come back to it at the end.</p>
+
+    <div class="ss-field">
+      <label class="ss-label" for="p1"><span class="ss-m">1</span>Variables that could predict a student stopping out</label>
+      <textarea class="mo-textarea" id="p1" rows="5"></textarea>
+    </div>
+    <div class="ss-field">
+      <label class="ss-label" for="p2"><span class="ss-m">2</span>Variables the university probably holds but should not use (and why)</label>
+      <textarea class="mo-textarea" id="p2" rows="5"></textarea>
+    </div>
+    <div class="ss-lock">
+      <button class="mo-btn" type="button">Lock my prediction</button>
+    </div>
+  </section>
+</main>
+
+</body>
+</html>

@@ -1,20 +1,96 @@
 import marimo
 
 __generated_with = "0.17.7"
-app = marimo.App(width="medium")
+app = marimo.App(width="compact")
 
 with app.setup:
     import functools
     import html
 
     BUTTON_KINDS = {"include": "success", "exclude": "danger", "flag": "warn"}
-    CHOICE_MARKS = {"include": "🟢", "exclude": "🔴", "flag": "🟠"}
 
-    CARD_STYLE = (
-        "<style>.poee-card>div{height:220px;border-radius:14px;padding:18px;box-sizing:border-box;"
-        "font-size:14px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.12);animation:poee-flip .45s ease}"
-        "@keyframes poee-flip{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}</style>"
+    FONT_LINK = (
+        "<link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Libre+Franklin:"
+        "wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap'>"
     )
+    # Pitt navy is the case's ink; Pitt gold marks what the learner adds. Cool hue-260 neutrals.
+    PALETTE = (
+        ".ss{--gold:#FFB81C;--navy:#003594;--navy-dk:#003163;--ink:oklch(0.24 0.012 260);"
+        "--mid:oklch(0.47 0.010 260);--rule:oklch(0.86 0.006 260);--wash:oklch(0.975 0.004 260);"
+        "--sans:'Libre Franklin','PT Sans',sans-serif;--serif:'Lora',Georgia,serif;"
+        "color:var(--ink);font-family:var(--sans)}"
+    )
+    # Card faces render inside the marimo button's shadow root, so they carry their own styles.
+    CARD_STYLE = (
+        ".ss-card{box-sizing:border-box;width:224px;height:300px;overflow:hidden;background:#fff;"
+        "border:1px solid var(--rule);border-radius:2px;display:flex;flex-direction:column;text-align:left;"
+        "white-space:normal;font-weight:400;box-shadow:0 1px 0 var(--rule),0 8px 18px -14px rgba(0,49,99,.35);"
+        "animation:ss-flip .4s cubic-bezier(.2,.7,.3,1) both}"
+        ".ss-card:hover{border-color:var(--gold)}"
+        ".ss-front-face{display:var(--ss-front,flex)}.ss-back-face{display:var(--ss-back,none)}"
+        "@keyframes ss-flip{from{transform:rotateY(90deg);opacity:.4}to{transform:rotateY(0);opacity:1}}"
+        ".ss-band,.ss-band-b{display:flex;align-items:center;justify-content:center;"
+        "font:600 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase}"
+        ".ss-band{height:54px;background:var(--navy);color:#fff}"
+        ".ss-band-b{height:40px;margin-top:auto;background:var(--gold);color:var(--navy-dk)}"
+        ".ss-front-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;"
+        "text-align:center;padding:0 20px}"
+        ".ss-numeral{font:italic 400 22px/1 var(--serif);color:var(--navy)}"
+        ".ss-front-title{font:500 24px/1.15 var(--serif);color:var(--ink);margin-top:10px}"
+        ".ss-hair{width:28px;height:2px;background:var(--gold);margin:14px auto 0}"
+        ".ss-back{padding:18px 18px 14px}"
+        ".ss-back-head{display:flex;align-items:baseline;justify-content:space-between;"
+        "border-bottom:2px solid var(--navy);padding-bottom:7px}"
+        ".ss-back-head b{font:500 16px/1.1 var(--serif);color:var(--ink)}"
+        ".ss-back-head i{font:italic 400 15px/1 var(--serif);color:var(--navy)}"
+        ".ss-back-text{display:block;font:400 13px/1.45 var(--sans);color:var(--ink);margin:9px 0 0;hyphens:auto}"
+        ".ss-back-text::first-letter{font:500 30px/.8 var(--serif);float:left;color:var(--navy);margin:3px 4px 0 0}"
+    )
+    # marimo's button is a fixed-height inline-flex; centring it in a card-height flex slot lets the
+    # card overflow it symmetrically and sit in normal flow. The card's -9px margin covers the button's
+    # 7.2px side padding and 1px border. ponytail: tied to marimo 0.17.7's button box; re-check on upgrade.
+    CARD_SLOT = {"display": "flex", "align-items": "center", "justify-content": "center", "height": "300px"}
+    # Page-level blocks (light DOM), injected once by the title cell.
+    BRIEF_STYLE = (
+        ".ss-kicker{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--navy)}"
+        ".ss-title{font:500 42px/1.1 var(--serif);letter-spacing:-.01em;margin:10px 0 30px;color:var(--ink)}"
+        ".ss-gate{margin:18px 0 0;text-align:center;font:italic 400 15px/1.4 var(--serif);color:var(--mid)}"
+        ".ss-gate::before,.ss-gate::after{content:'';display:inline-block;width:36px;height:1px;"
+        "background:var(--rule);vertical-align:middle;margin:0 12px}"
+        ".ss-stage{margin-top:40px}"
+        ".ss-runhead{display:flex;justify-content:space-between;font:600 12px/1 var(--sans);letter-spacing:.14em;"
+        "text-transform:uppercase;color:var(--mid);border-top:2px solid var(--navy-dk);padding-top:9px}"
+        ".ss-runhead span:first-child{color:var(--navy)}"
+        ".ss-stage-title{font:500 34px/1.1 var(--serif);margin:18px 0 0;padding:0;border:0;color:var(--ink)}"
+        ".ss-stage-title em{font-style:italic;color:var(--navy)}"
+        ".ss-steps{display:flex;gap:18px;margin-top:12px;font:400 13px/1 var(--sans);color:var(--mid)}"
+        ".ss-step.now{color:var(--ink);font-weight:600;border-bottom:2px solid var(--gold);padding-bottom:3px}"
+        ".ss-prompt{margin-top:22px;background:var(--wash);border-top:1px solid var(--rule);"
+        "border-bottom:1px solid var(--rule);padding:18px 22px;font:400 16px/1.6 var(--serif);color:var(--ink)}"
+        ".ss-prompt .n{font-style:italic;color:var(--navy)}"
+        ".ss-prompt strong{font-weight:600}"
+        ".ss-label{display:grid;grid-template-columns:34px 1fr;align-items:baseline;margin:22px 0 8px}"
+        ".ss-label i{font:italic 400 20px/1 var(--serif);color:var(--navy)}"
+        ".ss-label span{font:600 14px/1.35 var(--sans);color:var(--ink)}"
+        ".ss-indent{padding-left:34px}"
+        ".ss-locked{margin-top:22px;background:var(--wash);border-top:2px solid var(--navy-dk);"
+        "border-bottom:1px solid var(--rule);padding:14px 22px 18px}"
+        ".ss-locked-head{font:600 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--navy)}"
+        ".ss-locked h4{font:italic 500 16px/1.3 var(--serif);color:var(--ink);margin:14px 0 4px}"
+        ".ss-locked p{font:400 15px/1.55 var(--sans);margin:0}"
+        ".ss-task-title{font:500 24px/1.2 var(--serif);color:var(--ink);margin:34px 0 12px;padding:0;border:0}"
+        ".ss-brief{background:var(--wash);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);"
+        "padding:16px 22px 18px;font:400 14px/1.6 var(--sans);color:var(--ink)}"
+        ".ss-brief p{margin:0 0 10px}"
+        ".ss-brief table{width:100% !important;border-collapse:collapse;margin:6px 0 0;font-size:13.5px;box-shadow:none}"
+        ".ss-brief tr{background:none !important}"
+        ".ss-brief th,.ss-brief td{text-align:left !important;vertical-align:top;padding:7px 10px 7px 0;"
+        "background:none !important;border:0;border-bottom:1px solid var(--rule)}"
+        ".ss-brief th{font:600 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--navy);"
+        "border-bottom:2px solid var(--navy)}"
+        ".ss-brief td:first-child{white-space:nowrap;font-weight:600;padding-right:18px}"
+    )
+    STAGES = ("Predict", "Observe", "Explain", "Evaluate")
     CHOICES = ("include", "exclude", "flag")
 
     TASKS = {
@@ -46,25 +122,27 @@ with app.setup:
 
 
     EVAL_STYLE = (
-        "<style>.poee-eval{color:#0f172a}"
-        ".poee-eval .sum,.poee-eval .ev{background:#fff;border-radius:12px;padding:16px 20px;margin:14px 0;"
-        "box-shadow:0 2px 8px rgba(0,0,0,.15)}"
-        ".poee-eval .big{font-size:22px;font-weight:700}"
-        ".poee-eval .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0}"
-        ".poee-eval .legend,.poee-eval .chips{font-size:12px;color:#475569;margin-top:6px}"
-        ".poee-eval .chip{display:inline-block;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;"
-        "padding:2px 8px;margin:2px}"
-        ".poee-eval .ev{border-left:5px solid #f59e0b}.poee-eval .ev.harm{border-left-color:#ef4444}"
-        ".poee-eval h3{margin:0 0 10px}"
+        "<style>.poee-eval .sum{background:var(--wash);border-top:2px solid var(--navy-dk);"
+        "border-bottom:1px solid var(--rule);padding:16px 22px;margin:14px 0}"
+        ".poee-eval .big{font:500 22px/1.3 var(--serif);color:var(--ink)}"
+        ".poee-eval .bar{display:flex;height:8px;overflow:hidden;margin:12px 0}"
+        ".poee-eval .legend,.poee-eval .chips{font:400 12.5px/1.6 var(--sans);color:var(--mid);margin-top:6px}"
+        ".poee-eval .chip{display:inline-block;background:#fff;border:1px solid var(--rule);padding:1px 8px;margin:2px;"
+        "color:var(--ink)}"
+        ".poee-eval .ev{background:#fff;border:1px solid var(--rule);border-top:3px solid #d97706;padding:16px 20px;margin:14px 0}"
+        ".poee-eval .ev.harm{border-top-color:#b91c1c}"
+        ".poee-eval h3{font:500 19px/1.25 var(--serif);color:var(--ink);margin:0 0 12px;padding:0;border:0}"
         ".poee-eval .trail{display:flex;gap:8px;margin-bottom:10px}"
-        ".poee-eval .trail div{flex:1;border-radius:8px;padding:8px 10px;font-size:13px;background:#f1f5f9}"
+        ".poee-eval .trail div{flex:1;padding:8px 10px;font:400 13px/1.4 var(--sans);background:var(--wash)}"
         ".poee-eval .trail .ok{background:#ecfdf5}"
-        ".poee-eval .k{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748b}"
-        ".poee-eval .also{font-size:11px;color:#64748b}"
-        ".poee-eval .why,.poee-eval .cost{font-size:13px;line-height:1.55;margin:8px 0}"
-        ".poee-eval .cost{background:#fef2f2;border-radius:8px;padding:10px 12px}"
-        ".poee-eval .grp{margin:22px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;"
-        "color:#64748b}</style>"
+        ".poee-eval .k{display:block;font:600 10.5px/1.4 var(--sans);text-transform:uppercase;letter-spacing:.1em;"
+        "color:var(--mid)}"
+        ".poee-eval .also{font-size:11.5px;color:var(--mid)}"
+        ".poee-eval .key{display:inline-block;width:10px;height:10px;margin:0 6px -1px 0}"
+        ".poee-eval .why,.poee-eval .cost{font:400 14px/1.6 var(--sans);color:var(--ink);margin:8px 0}"
+        ".poee-eval .cost{background:#fdf3f2;padding:10px 12px}"
+        ".poee-eval .grp{margin:26px 0 4px;font:600 12px/1 var(--sans);text-transform:uppercase;letter-spacing:.14em;"
+        "color:var(--navy)}</style>"
     )
 
     REFLECTION_PROMPTS = [
@@ -78,23 +156,20 @@ with app.setup:
 
     CARDS = {
         'story': {
+            "numeral": 'i',
             "title": 'The story so far',
-            "icon": '📖',
-            "background": 'linear-gradient(135deg,#4f46e5,#7c3aed)',
             "back": 'Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the federal limits on using FAFSA data.',
             "full": 'The university is a large research institution that competes for students in a crowded higher-education market. Over the past five years the first-to-second-year retention rate has drifted downward, and graduation timelines have lengthened. Senior leadership has asked the Office of the Provost to treat student persistence as a strategic priority rather than a routine metric. An internal mandate now calls for data-informed, proactive outreach so that support staff can offer help long before a student considers leaving. Within the Office of the Provost a small Student Success Analytics group has been established. This team combines institutional researchers, academic advisors, compliance officers, and data engineers. Its first assignment is to create an early warning intelligence tool that flags continuing undergraduates who appear at risk of stopping out or falling behind schedule. Advisors will then contact those students and connect them with tutoring, financial counseling, or mentoring. The analytics group is expected to respect privacy regulations such as FERPA and the federal law and Department of Education guidance that limit how FAFSA data may be used. It is also expected to uphold the university commitment to equity and transparency in every technical choice.',
         },
         'role': {
+            "numeral": 'ii',
             "title": 'Your role',
-            "icon": '🧑\u200d💻',
-            "background": 'linear-gradient(135deg,#0284c7,#0ea5e9)',
             "back": "You are the team's data scientist. You won't build the model yet. You decide what goes into it. You have a data dictionary and red-flag notes from legal and ethics reviewers, and no raw records.",
             "full": 'You serve as the team’s data science specialist. Your immediate task is not to build a model but to decide which pieces of information should be fed into one. Working with colleagues you have assembled a data dictionary drawn from the university warehouse. The dictionary lists common attributes such as high school grade point averages, standardized test scores, race, gender, residency status, and course loads. It also contains financial indicators like Pell eligibility and Expected Family Contribution. Several context-specific items are included as well. Examples are whether a student applied to a regional campus after a main-campus denial, whether a student is a varsity athlete, and the distance between the student’s home address and campus. No raw records are available at this stage of the project; only the variable descriptions, their known limitations, and any red-flag notes provided by legal or ethical reviewers.',
         },
         'deliver': {
+            "numeral": 'iii',
             "title": 'What you deliver',
-            "icon": '📋',
-            "background": 'linear-gradient(135deg,#059669,#10b981)',
             "back": 'A one-page Variable Selection Brief. Every variable is marked include, exclude, or flag, with a short reason tied to privacy, fairness, and usefulness. Advisors and compliance sign it before any modelling starts.',
             "full": 'Academic advisors need a concise, defensible list of candidate predictors that can drive a predictive model without violating regulations or undermining equitable treatment. Your deliverable for this scenario is a Variable Selection Brief. In one page you will designate each variable as included, excluded, or flagged for additional discussion. For every decision you will provide a short rationale that links back to the goals of privacy protection, fairness, and practical usefulness. Advisors and compliance staff will review and sign this brief before any modelling work proceeds.',
         },
@@ -924,6 +999,16 @@ def record_reason(set_reasons, name: str, text: str) -> None:
 
 
 @app.function
+def record_field(setter, key: str, text: str) -> None:
+    setter(lambda fields: with_entry(fields, key, text))
+
+
+@app.function
+def reflections_of(fields: dict) -> list[str]:
+    return [fields.get(f"r{i}", "") for i in range(1, len(REFLECTION_PROMPTS) + 1)]
+
+
+@app.function
 def brief_rows_of(decisions: dict, reasons: dict) -> list[tuple]:
     """One row per variable: (group, decision label, variable title, justification)."""
     rows = []
@@ -974,19 +1059,48 @@ def record_flip(set_flipped, set_opened, card_id: str, _value=None) -> None:
 
 
 @app.function
-def card_html(card_id: str, flipped: bool) -> str:
+def card_html(card_id: str) -> str:
     card = CARDS[card_id]
-    if flipped:
-        face = (f"<div style='background:#fff;color:#0f172a;border:1px solid #e2e8f0;'>"
-                f"<b style='display:block;margin-bottom:6px'>{html.escape(card['title'], quote=False)}</b>"
-                f"{html.escape(card['back'], quote=False)}</div>")
-    else:
-        face = (f"<div style='background:{card['background']};color:#fff;text-align:center;"
-                f"display:flex;flex-direction:column;justify-content:center;'>"
-                f"<div style='font-size:42px'>{card['icon']}</div>"
-                f"<div style='font-size:20px;font-weight:700;margin-top:6px'>{html.escape(card['title'], quote=False)}</div>"
-                f"<div style='font-size:12px;opacity:.85;margin-top:4px'>click Flip to open</div></div>")
-    return CARD_STYLE + f"<div class='poee-card'>{face}</div>"
+    title = html.escape(card["title"], quote=False)
+    front = (
+        "<div class='ss-card ss-front-face'><div class='ss-band'>Student Success</div>"
+        f"<div class='ss-front-body'><div class='ss-numeral'>{card['numeral']}</div>"
+        f"<div class='ss-front-title'>{title}</div><div class='ss-hair'></div></div>"
+        "<div class='ss-band-b'>Click to open</div></div>"
+    )
+    back = (
+        f"<div class='ss-card ss-back ss-back-face'><div class='ss-back-head'><b>{title}</b><i>{card['numeral']}</i></div>"
+        f"<div class='ss-back-text'>{html.escape(card['back'], quote=False)}</div></div>"
+    )
+    return f"<style>{PALETTE}{CARD_STYLE}</style><div class='ss' style='margin:0 -9px'>{front}{back}</div>"
+
+
+@app.function
+def card_slot_style(flipped: bool) -> dict:
+    # The face is chosen by custom properties, which inherit into the button's shadow root.
+    return {**CARD_SLOT, "--ss-front": "none" if flipped else "flex", "--ss-back": "none" if not flipped else "block"}
+
+
+@app.function
+def stage_header_html(stage: int) -> str:
+    steps = "".join(
+        f'<span class="ss-step now">{name}</span>' if i == stage else f'<span class="ss-step">{name}</span>'
+        for i, name in enumerate(STAGES, 1)
+    )
+    return (
+        f'<div class="ss ss-stage"><div class="ss-runhead"><span>Variable Selection Brief</span>'
+        f"<span>Stage {stage} of 4</span></div>"
+        f'<h2 class="ss-stage-title"><em>Stage {stage}</em> · {STAGES[stage - 1]}</h2>'
+        f'<div class="ss-steps">{steps}</div></div>'
+    )
+
+
+@app.function
+def locked_prediction_html(prediction: dict) -> str:
+    return (
+        '<div class="ss ss-locked"><div class="ss-locked-head">Your locked prediction</div>'
+        f"{prediction_html(prediction)}</div>"
+    )
 
 
 @app.function
@@ -1034,14 +1148,15 @@ def evaluation_html(decisions: dict) -> str:
         if decisions.get(name) and is_correct(name, decisions[name])
     )
     out = (
-        f"{EVAL_STYLE}<div class='poee-eval'><div class='sum'>"
+        f"<style>{PALETTE}</style>{EVAL_STYLE}<div class='ss poee-eval'><div class='sum'>"
         f"<div class='big'>{counts['correct']} of {len(VARIABLES)} choices hold up. {len(wrong)} to review.</div>"
-        f"<div class='bar'><div style='flex:{counts['correct']};background:#10b981'></div>"
-        f"<div style='flex:{counts['harm']};background:#ef4444'></div>"
-        f"<div style='flex:{counts['cautious']};background:#f59e0b'></div></div>"
-        f"<div class='legend'>🟥 {counts['harm']} would cause harm or break a rule &nbsp; "
-        f"🟧 {counts['cautious']} too cautious, or effort in the wrong place</div>"
-        f"<div class='chips'>✓ Correct: {chips or '—'}</div></div>"
+        f"<div class='bar'><div style='flex:{counts['correct']};background:#15803d'></div>"
+        f"<div style='flex:{counts['harm']};background:#b91c1c'></div>"
+        f"<div style='flex:{counts['cautious']};background:#d97706'></div></div>"
+        f"<div class='legend'><span class='key' style='background:#b91c1c'></span>{counts['harm']} would cause harm "
+        f"or break a rule &nbsp; <span class='key' style='background:#d97706'></span>{counts['cautious']} too "
+        "cautious, or effort in the wrong place</div>"
+        f"<div class='chips'>Correct: {chips or '—'}</div></div>"
     )
     for task in TASKS:
         cards = [w for w in wrong if w["task"] == task]
@@ -1098,14 +1213,17 @@ def wrapup_prompt(include_count: int, submitted: bool) -> str:
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _():
-    import marimo as mo                           
-    mo.md(
-        "# Variable selection scenario\n"
+    import marimo as mo
 
+    mo.Html(
+        f"{FONT_LINK}<style>{PALETTE}{BRIEF_STYLE}</style>"
+        "<div class='ss'><div class='ss-kicker'>ConCReTE · Student Success Analytics</div>"
+        "<h1 class='ss-title'>Variable selection scenario</h1></div>"
     )
     return (mo,)
+
 
 @app.cell
 def card_states(mo):
@@ -1115,52 +1233,64 @@ def card_states(mo):
     return get_flipped, get_opened, get_prediction, set_flipped, set_opened, set_prediction
 
 
-@app.cell
-def flip_buttons(mo, set_flipped, set_opened):
-    flip_buttons = {
-        card_id: mo.ui.run_button(
-            label="Flip",
+@app.cell(hide_code=True)
+def card_buttons(mo, set_flipped, set_opened):
+    # Built once, both faces in the label; flip_cards picks the face, so a button is never recreated.
+    story_card, role_card, deliver_card = (
+        mo.ui.run_button(
+            label=card_html(card_id),
             on_change=functools.partial(record_flip, set_flipped, set_opened, card_id),
         )
-        for card_id in CARDS
-    }
-    return (flip_buttons,)
+        for card_id in ("story", "role", "deliver")
+    )
+    return deliver_card, role_card, story_card
 
 
 @app.cell(hide_code=True)
-def flip_cards(flip_buttons, get_flipped, mo):
-    mo.hstack(
-        [
-            mo.vstack([mo.Html(card_html(card_id, card_id in get_flipped())), flip_buttons[card_id]], align="center")
-            for card_id in CARDS
-        ],
-        widths="equal",
-        gap=1,
-    )
+def flip_cards(deliver_card, get_flipped, get_opened, mo, role_card, story_card):
+    _slots = [
+        card.style(card_slot_style(card_id in get_flipped()))
+        for card_id, card in (("story", story_card), ("role", role_card), ("deliver", deliver_card))
+    ]
+    _gate = "" if cards_ready(get_opened()) else mo.Html("<p class='ss ss-gate'>Open all three cards to begin.</p>")
+    mo.vstack([mo.hstack(_slots, justify="space-between"), _gate])
     return
 
 
 @app.cell
 def predict_inputs(mo):
-    could_predict_box = mo.ui.text_area(
-        placeholder="e.g. first-term GPA, because early grades show who is struggling",
-        rows=6,
-        full_width=True,
-    )
-    barred_box = mo.ui.text_area(
-        placeholder="e.g. race, because it is a protected attribute",
-        rows=6,
-        full_width=True,
-    )
-    lock_button = mo.ui.run_button(label="🔒 Lock my prediction", kind="success")
-    return barred_box, could_predict_box, lock_button
+    get_draft, set_draft = mo.state({"could_predict": "", "barred": ""})
+    lock_button = mo.ui.run_button(label="Lock my prediction", kind="success")
+    return get_draft, lock_button, set_draft
 
 
 @app.cell
-def lock_prediction(barred_box, could_predict_box, lock_button, mo, set_prediction):
-    _ready = prediction_ready(could_predict_box.value, barred_box.value)
+def predict_boxes(mo, set_draft):
+    # A plain dict is not tracked by marimo, so the cell that renders these never re-runs while
+    # the learner types; the text reaches the kernel through state instead.
+    predict_boxes = {
+        "could_predict": mo.ui.text_area(
+            placeholder="e.g. first-term GPA, because early grades show who is struggling",
+            rows=6,
+            full_width=True,
+            on_change=functools.partial(record_field, set_draft, "could_predict"),
+        ),
+        "barred": mo.ui.text_area(
+            placeholder="e.g. race, because it is a protected attribute",
+            rows=6,
+            full_width=True,
+            on_change=functools.partial(record_field, set_draft, "barred"),
+        ),
+    }
+    return (predict_boxes,)
+
+
+@app.cell
+def lock_prediction(get_draft, lock_button, mo, set_prediction):
+    _draft = get_draft()
+    _ready = prediction_ready(_draft["could_predict"], _draft["barred"])
     if lock_button.value and _ready:
-        set_prediction({"could_predict": could_predict_box.value.strip(), "barred": barred_box.value.strip()})
+        set_prediction({key: text.strip() for key, text in _draft.items()})
     lock_warning = (
         mo.callout(mo.md("Write something in both boxes before you lock."), kind="warn")
         if lock_button.value and not _ready
@@ -1170,38 +1300,31 @@ def lock_prediction(barred_box, could_predict_box, lock_button, mo, set_predicti
 
 
 @app.cell(hide_code=True)
-def predict(
-    barred_box,
-    could_predict_box,
-    get_opened,
-    get_prediction,
-    lock_button,
-    lock_warning,
-    mo,
-):
-    mo.stop(not cards_ready(get_opened()), mo.md("*Open all three cards to begin.*"))
+def predict(get_opened, get_prediction, lock_button, lock_warning, mo, predict_boxes):
+    mo.stop(not cards_ready(get_opened()))
     _header = [
-        mo.md("# Stage 1 · Predict"),
-        mo.md(
-            "Before you see the university's data dictionary, write down from your own knowledge:\n\n"
-            "1. **Variables that could predict a student stopping out**, each with a one-line reason.\n"
-            "2. **Variables the university probably holds but should not use**, each with the rule or concern that stops it.\n\n"
-            "Once you lock your prediction it cannot be changed. You will come back to it at the end."
+        mo.Html(stage_header_html(1)),
+        mo.Html(
+            "<div class='ss ss-prompt'>Before you see the university's data dictionary, write down from your own "
+            "knowledge: <span class='n'>(1)</span> variables that could predict a student stopping out, each with a "
+            "one-line reason; <span class='n'>(2)</span> variables the university probably holds but should not use, "
+            "each with the rule or concern that stops it. <strong>Once you lock your prediction it cannot be "
+            "changed.</strong> You will come back to it at the end.</div>"
         ),
     ]
     if get_prediction() is None:
         _output = mo.vstack(_header + [
-            mo.md("**Variables that could predict a student stopping out**"),
-            could_predict_box,
-            mo.md("**Variables the university probably holds but should not use (and why)**"),
-            barred_box,
-            lock_button,
+            mo.Html(
+                "<div class='ss'><div class='ss-label'><i>1</i><span>Variables that could predict a student "
+                f"stopping out</span></div><div class='ss-indent'>{predict_boxes['could_predict']}</div>"
+                "<div class='ss-label'><i>2</i><span>Variables the university probably holds but should not use "
+                f"(and why)</span></div><div class='ss-indent'>{predict_boxes['barred']}</div>"
+                f"<div class='ss-indent' style='margin-top:22px'>{lock_button}</div></div>"
+            ),
             lock_warning,
         ])
     else:
-        _output = mo.vstack(_header + [
-            mo.callout(mo.vstack([mo.md("🔒 **Your locked prediction**"), mo.Html(prediction_html(get_prediction()))]), kind="neutral"),
-        ])
+        _output = mo.vstack(_header + [mo.Html(locked_prediction_html(get_prediction()))])
     _output
     return
 
@@ -1261,9 +1384,9 @@ def controls(mo, set_decisions, set_reasons):
 def views(mo):
     def decision_line(name, choice):
         if not choice:
-            return "⚪️ You have **not yet selected** an option."
+            return "*Not decided yet.*"
         label = TASKS[VARIABLES[name]["task"]]["labels"][choice]
-        return f"{CHOICE_MARKS[choice]} You decided: **{label}**."
+        return f"You decided: **{label}**."
 
     def variable_view(name, decisions, reasons, controls, submitted):
         title, choice = VARIABLES[name]["title"], decisions[name]
@@ -1280,8 +1403,8 @@ def views(mo):
         return mo.vstack(
             [
                 mo.Html(f'<div id="task_{task}"></div>'),
-                mo.md(f"## {TASKS[task]['heading']}"),
-                mo.callout(mo.md(TASKS[task]["banner"]), kind="info"),
+                mo.Html(f"<h3 class='ss ss-task-title'>{html.escape(TASKS[task]['heading'])}</h3>"),
+                mo.Html(f"<div class='ss ss-brief'>{mo.md(TASKS[task]['banner']).text}</div>"),
             ]
             + [variable_view(name, decisions, reasons, controls, submitted) for name in variables_in(task)]
             + [mo.Html('<hr style="border: 1px dashed black; margin-top:2.5rem; margin-bottom:3rem;">')]
@@ -1292,7 +1415,7 @@ def views(mo):
 @app.cell
 def observe_header(get_prediction, mo):
     mo.stop(get_prediction() is None)
-    mo.md("# Stage 2 · Observe")
+    mo.Html(stage_header_html(2))
     return
 
 
@@ -1384,16 +1507,28 @@ def review_wave_buttons(get_prediction, mo):
 
 @app.cell
 def explain_inputs(mo):
-    student_name = mo.ui.text(label="Your name", full_width=True)
-    advisor_notes = mo.ui.text_area(label="Notes for advisors and compliance staff (optional)", rows=5, full_width=True)
-    reflections = mo.ui.array([mo.ui.text_area(rows=5, full_width=True) for _ in REFLECTION_PROMPTS])
+    get_explain, set_explain = mo.state({"name": "", "notes": "", "r1": "", "r2": "", "r3": ""})
     submit_button = mo.ui.run_button(label="Submit for evaluation", kind="success")
-    return advisor_notes, reflections, student_name, submit_button
+    return get_explain, set_explain, submit_button
 
 
 @app.cell
-def submit_action(get_decisions, mo, reflections, set_submitted, submit_button):
-    _ready = can_submit(get_decisions(), reflections.value)
+def explain_fields(mo, set_explain):
+    # Plain dict for the same reason as predict_boxes: the explain cell must not re-run on typing.
+    explain_fields = {
+        "name": mo.ui.text(full_width=True, on_change=functools.partial(record_field, set_explain, "name")),
+        "notes": mo.ui.text_area(rows=5, full_width=True, on_change=functools.partial(record_field, set_explain, "notes")),
+        **{
+            f"r{i}": mo.ui.text_area(rows=5, full_width=True, on_change=functools.partial(record_field, set_explain, f"r{i}"))
+            for i in range(1, len(REFLECTION_PROMPTS) + 1)
+        },
+    }
+    return (explain_fields,)
+
+
+@app.cell
+def submit_action(get_decisions, get_explain, mo, set_submitted, submit_button):
+    _ready = can_submit(get_decisions(), reflections_of(get_explain()))
     if submit_button.value and _ready:
         set_submitted(True)
     submit_warning = (
@@ -1406,38 +1541,44 @@ def submit_action(get_decisions, mo, reflections, set_submitted, submit_button):
 
 @app.cell(hide_code=True)
 def explain(
-    advisor_notes,
+    explain_fields,
     get_decisions,
+    get_explain,
     get_prediction,
     get_reasons,
     get_submitted,
     mo,
-    reflections,
-    student_name,
     submit_button,
     submit_warning,
 ):
     mo.stop(get_prediction() is None)
     mo.stop(not all_decided(get_decisions()), mo.md("*Decide every variable to continue to Stage 3.*"))
-    _missing = missing_reasons(get_decisions(), get_reasons())
     _header = [
-        mo.md("# Stage 3 · Explain"),
+        mo.Html(stage_header_html(3)),
         mo.md(
             "Reconcile what you decided with what you predicted before you saw the data dictionary. "
             "Your answers here go into your Variable Selection Brief."
         ),
-        mo.callout(mo.vstack([mo.md("🔒 **Your locked prediction**"), mo.Html(prediction_html(get_prediction()))]), kind="neutral"),
+        mo.Html(locked_prediction_html(get_prediction())),
     ]
     if get_submitted():
-        _answers = [
-            mo.md(f"**{i}. {q}**\n\n{html.escape(a.strip())}")
-            for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections.value), 1)
-        ]
-        _output = mo.vstack(_header + [mo.md(f"**Name:** {html.escape(student_name.value.strip()) or '*not given*'}")] + _answers + [
-            mo.md(f"**Notes for advisors and compliance staff:** {html.escape(advisor_notes.value.strip()) or '*none*'}"),
-            mo.callout(mo.md("✅ **Submitted.** Your choices and reflection are locked."), kind="success"),
+        _fields = get_explain()
+        _answers = "".join(
+            f"<div class='ss-label'><i>{i}</i><span>{html.escape(q)}</span></div>"
+            f"<div class='ss-indent'>{paragraph_html(a)}</div>"
+            for i, (q, a) in enumerate(zip(REFLECTION_PROMPTS, reflections_of(_fields)), 1)
+        )
+        _output = mo.vstack(_header + [
+            mo.Html(
+                f"<div class='ss'><div class='ss-label'><i>·</i><span>Name</span></div>"
+                f"<div class='ss-indent'>{paragraph_html(_fields['name'])}</div>{_answers}"
+                f"<div class='ss-label'><i>·</i><span>Notes for advisors and compliance staff</span></div>"
+                f"<div class='ss-indent'>{paragraph_html(_fields['notes'])}</div></div>"
+            ),
+            mo.callout(mo.md("**Submitted.** Your choices and reflection are locked."), kind="success"),
         ])
     else:
+        _missing = missing_reasons(get_decisions(), get_reasons())
         _reasons_note = (
             mo.callout(
                 mo.md(f"**{len(_missing)} decision(s) have no justification.** You can still submit, "
@@ -1447,12 +1588,18 @@ def explain(
             if _missing
             else ""
         )
-        _questions = [
-            mo.vstack([mo.md(f"**{i}. {q}**"), box])
-            for i, (q, box) in enumerate(zip(REFLECTION_PROMPTS, reflections), 1)
-        ]
-        _output = mo.vstack(_header + [student_name] + _questions + [
-            advisor_notes,
+        _questions = "".join(
+            f"<div class='ss-label'><i>{i}</i><span>{html.escape(q)}</span></div>"
+            f"<div class='ss-indent'>{explain_fields[f'r{i}']}</div>"
+            for i, q in enumerate(REFLECTION_PROMPTS, 1)
+        )
+        _output = mo.vstack(_header + [
+            mo.Html(
+                f"<div class='ss'><div class='ss-label'><i>·</i><span>Your name</span></div>"
+                f"<div class='ss-indent'>{explain_fields['name']}</div>{_questions}"
+                f"<div class='ss-label'><i>·</i><span>Notes for advisors and compliance staff (optional)</span></div>"
+                f"<div class='ss-indent'>{explain_fields['notes']}</div></div>"
+            ),
             _reasons_note,
             mo.md("Submitting locks every choice and reflection, then shows your evaluation."),
             submit_button,
@@ -1466,7 +1613,7 @@ def explain(
 def evaluate(get_decisions, get_submitted, mo):
     mo.stop(not get_submitted())
     mo.vstack([
-        mo.md("# Stage 4 · Evaluate"),
+        mo.Html(stage_header_html(4)),
         mo.md(
             "Here is how your choices compare with the correct choices. Only the choices to review get a card: "
             "each one says why, and what would happen in the real world if the brief shipped as written."
@@ -1477,20 +1624,12 @@ def evaluate(get_decisions, get_submitted, mo):
 
 
 @app.cell
-def download_brief(
-    advisor_notes,
-    get_decisions,
-    get_prediction,
-    get_reasons,
-    get_submitted,
-    mo,
-    reflections,
-    student_name,
-):
+def download_brief(get_decisions, get_explain, get_prediction, get_reasons, get_submitted, mo):
     mo.stop(not get_submitted())
-    _name = student_name.value.strip()
+    _fields = get_explain()
+    _name = _fields["name"].strip()
     _doc = report_html(
-        _name, get_prediction(), get_decisions(), get_reasons(), advisor_notes.value, reflections.value
+        _name, get_prediction(), get_decisions(), get_reasons(), _fields["notes"], reflections_of(_fields)
     )
     _slug = "".join(c if c.isalnum() else "-" for c in _name.lower()).strip("-")
     mo.vstack([

@@ -1,0 +1,180 @@
+<!--
+LOGIC: "best designer". Anchor: Giorgia Lupi (Pentagram partner; Data Humanism, Dear Data).
+WHY HER: this case asks students to remember that every variable in a data dictionary is a person's
+life reduced to a column. Lupi's whole practice is that argument: small data, read slowly, with a
+legend you have to learn. She keeps rigour and empathy in the same frame, and that is the
+privacy and welfare tension the exercise is about. Pentagram's information practice would make it clear,
+and Kenya Hara would make it quiet. Lupi makes students feel that the data is about people.
+What we take from her: the encoding is the ornament, legends sit on the face, the marks are few and
+deliberate, and the hand shows only where a person decides. We leave out her surface tropes:
+no handwriting fonts and no confetti of colour.
+
+PALETTE (sampled Pitt gold #FFB81C, navy #003594 / #003163, converged in oklch):
+  ink navy   oklch(0.36 0.15 262)  ~#0b3a8c  text marks, filled glyphs, headings
+  pitt gold  oklch(0.83 0.16 80)   ~#ffb81c  fills and highlighter only (never as text)
+  gold ink   oklch(0.53 0.11 75)   ~#8a6400  gold rendered as small text (>=4.5:1 on white)
+  neutrals (warm, hue 85): paper oklch(0.975 0.008 85), rule oklch(0.88 0.012 85),
+           muted oklch(0.50 0.012 85) (>=4.5:1), body oklch(0.26 0.015 85)
+  Justification: navy is the ink that decides and gold is the highlighter that marks a concern, so the two
+  brand colours become the brief's own legend, and warm paper neutrals make it feel like a case file
+  rather than a screen.
+
+FONTS: Lora (headings, marimo default), PT Sans (body, marimo default), PT Mono (field labels and
+  legend keys, the same PT family, so it reads like a dictionary entry). All are from Google Fonts.
+
+FORM COMES FROM: the Variable Selection Brief's own three-mark legend (include, exclude, flag). That
+  legend is printed on the cards, numbers the stages and labels the two writing boxes, so the student
+  learns the brief's notation before they hold any data.
+
+BUILD NOTES: cards use inline styles plus the single <style> block below and no JS. The flip is
+  keyframe `cc-flip`, which plays when the back face re-renders. The textarea and button are left as
+  plain marimo-native stand-ins.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variable selection scenario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,500&family=PT+Mono&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* scoped to our blocks only; page/body stay marimo white */
+  .cc { --ink: oklch(0.36 0.15 262); --gold: oklch(0.83 0.16 80); --gold-ink: oklch(0.53 0.11 75);
+        --paper: oklch(0.975 0.008 85); --rule: oklch(0.88 0.012 85); --muted: oklch(0.50 0.012 85);
+        --body: oklch(0.26 0.015 85);
+        width: 740px; margin: 0 auto; padding: 56px 0 64px; color: var(--body);
+        font-family: "PT Sans", system-ui, sans-serif; font-size: 15px; line-height: 1.5; }
+  .cc * { box-sizing: border-box; }
+  .cc-mono { font-family: "PT Mono", ui-monospace, monospace; font-size: 12px; letter-spacing: .04em; }
+
+  /* legend glyphs: the brief's three marks */
+  .g { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; flex: none; }
+  .g-inc { background: var(--ink); }
+  .g-exc { border: 1.5px solid var(--ink);
+           background: linear-gradient(135deg, transparent 44%, var(--ink) 44% 56%, transparent 56%); }
+  .g-flag { border: 1.5px solid var(--gold-ink);
+            background: linear-gradient(90deg, var(--gold) 50%, transparent 50%); }
+  .g-open { border: 1.5px solid var(--muted); }
+
+  /* cards: one row, identical boxes */
+  .cc-cards { display: flex; justify-content: space-between; margin-top: 28px; }
+  .cc-card { width: 224px; height: 272px; flex: none; border: 1px solid var(--rule); border-radius: 4px;
+             padding: 18px 18px 16px; display: flex; flex-direction: column; cursor: pointer;
+             background: #fff; overflow: hidden; }
+  .cc-card:hover { border-color: var(--ink); }
+  .cc-back { background: var(--paper); border-color: oklch(0.80 0.03 80);
+             animation: cc-flip 400ms cubic-bezier(.2,.7,.3,1) both; transform-origin: 50% 50%; }
+  @keyframes cc-flip { from { transform: perspective(900px) rotateY(90deg); opacity: .4; }
+                       to   { transform: perspective(900px) rotateY(0deg);  opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .cc-back { animation: none; } }
+
+  .cc-textarea { width: 100%; border: 1px solid #d4d4d8; border-radius: 6px; padding: 8px 10px;
+                 font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; resize: vertical; color: #18181b; }
+  .cc-btn { background: #16a34a; color: #fff; border: 0; border-radius: 6px; padding: 7px 14px;
+            font: 13px system-ui, -apple-system, "Segoe UI", sans-serif; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="cc">
+
+  <!-- page title -->
+  <h1 style="font-family:Lora,Georgia,serif;font-weight:500;font-size:34px;line-height:1.15;color:var(--ink);margin:0;">Variable selection scenario</h1>
+  <div style="display:flex;gap:18px;align-items:center;margin-top:14px;color:var(--muted);" class="cc-mono">
+    <span style="display:inline-flex;gap:6px;align-items:center;"><i class="g g-inc"></i>include</span>
+    <span style="display:inline-flex;gap:6px;align-items:center;"><i class="g g-exc"></i>exclude</span>
+    <span style="display:inline-flex;gap:6px;align-items:center;"><i class="g g-flag"></i>flag</span>
+  </div>
+
+  <!-- three cards -->
+  <div class="cc-cards">
+
+    <!-- card 1: BACK (flipped) -->
+    <div class="cc-card cc-back" role="button">
+      <div class="cc-mono" style="display:flex;justify-content:space-between;color:var(--gold-ink);">
+        <span>01</span><span>The story so far</span>
+      </div>
+      <div style="height:1px;background:oklch(0.80 0.03 80);margin:9px 0 10px;"></div>
+      <p style="margin:0;font-size:13.5px;line-height:1.42;color:var(--body);">Retention from first to second year has been sliding for five years. The Provost wants advisors to reach struggling students before they leave. A new Student Success Analytics team has to build an early-warning tool, inside FERPA and the federal limits on using FAFSA data.</p>
+    </div>
+
+    <!-- card 2: FRONT -->
+    <div class="cc-card" role="button">
+      <div class="cc-mono" style="color:var(--muted);">02</div>
+      <!-- glyph: a data dictionary, entries as rules, some carrying a reviewer's flag -->
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:9px;padding:0 4px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:62%;background:var(--ink);"></span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:44%;background:var(--ink);"></span><i class="g g-flag"></i></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:70%;background:var(--ink);"></span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:36%;background:var(--ink);"></span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:54%;background:var(--ink);"></span><i class="g g-flag"></i></div>
+        <div style="display:flex;align-items:center;gap:8px;"><span style="height:2px;width:48%;background:var(--ink);"></span></div>
+      </div>
+      <div style="font-family:Lora,Georgia,serif;font-weight:500;font-size:21px;line-height:1.2;color:var(--ink);">Your role</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:9px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted);">
+        <span>click to open</span><span aria-hidden="true">&#8594;</span>
+      </div>
+    </div>
+
+    <!-- card 3: FRONT -->
+    <div class="cc-card" role="button">
+      <div class="cc-mono" style="color:var(--muted);">03</div>
+      <!-- glyph: the brief's legend, drawn large -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:22px;">
+        <i class="g g-inc" style="width:26px;height:26px;"></i>
+        <i class="g g-exc" style="width:26px;height:26px;border-width:2px;"></i>
+        <i class="g g-flag" style="width:26px;height:26px;border-width:2px;"></i>
+      </div>
+      <div style="font-family:Lora,Georgia,serif;font-weight:500;font-size:21px;line-height:1.2;color:var(--ink);">What you deliver</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:9px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted);">
+        <span>click to open</span><span aria-hidden="true">&#8594;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- gate line: one mark per card, filled when opened -->
+  <div style="display:flex;align-items:center;gap:10px;margin-top:18px;color:var(--muted);font-size:14px;">
+    <span style="display:inline-flex;gap:5px;"><i class="g g-inc" style="width:8px;height:8px;"></i><i class="g g-open" style="width:8px;height:8px;"></i><i class="g g-open" style="width:8px;height:8px;"></i></span>
+    <span>Open all three cards to begin.</span>
+  </div>
+
+  <!-- STAGE HEADER (reused by all four stages: swap the filled mark) -->
+  <section style="margin-top:60px;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;border-top:1.5px solid var(--ink);padding-top:14px;">
+      <h2 style="margin:0;font-family:Lora,Georgia,serif;font-weight:500;font-size:27px;line-height:1.2;color:var(--ink);">
+        <span class="cc-mono" style="font-size:13px;color:var(--gold-ink);vertical-align:4px;margin-right:6px;">Stage 1</span>&middot; Predict
+      </h2>
+      <div class="cc-mono" style="display:flex;align-items:center;gap:6px;color:var(--muted);">
+        <i class="g g-inc" style="width:9px;height:9px;"></i><span style="color:var(--ink);">Predict</span>
+        <span style="width:18px;height:1px;background:var(--rule);"></span>
+        <i class="g g-open" style="width:9px;height:9px;"></i><span>Observe</span>
+        <span style="width:18px;height:1px;background:var(--rule);"></span>
+        <i class="g g-open" style="width:9px;height:9px;"></i><span>Explain</span>
+        <span style="width:18px;height:1px;background:var(--rule);"></span>
+        <i class="g g-open" style="width:9px;height:9px;"></i><span>Evaluate</span>
+      </div>
+    </div>
+
+    <p style="margin:18px 0 0;font-size:15.5px;line-height:1.6;max-width:680px;">Before you see the university's data dictionary, write down from your own knowledge: <b style="font-weight:700;color:var(--ink);background:linear-gradient(transparent 62%, oklch(0.83 0.16 80 / .45) 62%);">(1)</b> variables that could predict a student stopping out, each with a one-line reason; <b style="font-weight:700;color:var(--ink);background:linear-gradient(transparent 62%, oklch(0.83 0.16 80 / .45) 62%);">(2)</b> variables the university probably holds but should not use, each with the rule or concern that stops it. Once you lock your prediction it cannot be changed. You will come back to it at the end.</p>
+
+    <div style="margin-top:28px;">
+      <label for="p1" style="display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--ink);margin-bottom:8px;">
+        <span class="cc-mono" style="color:var(--muted);font-weight:400;">(1)</span><i class="g g-inc"></i>Variables that could predict a student stopping out
+      </label>
+      <textarea id="p1" class="cc-textarea" rows="5"></textarea>
+    </div>
+
+    <div style="margin-top:22px;">
+      <label for="p2" style="display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--ink);margin-bottom:8px;">
+        <span class="cc-mono" style="color:var(--muted);font-weight:400;">(2)</span><i class="g g-exc"></i>Variables the university probably holds but should not use (and why)
+      </label>
+      <textarea id="p2" class="cc-textarea" rows="5"></textarea>
+    </div>
+
+    <div style="margin-top:18px;"><button class="cc-btn" type="button">Lock my prediction</button></div>
+  </section>
+
+</div>
+</body>
+</html>
