@@ -124,11 +124,15 @@ with app.setup:
                 'Amount a family is expected to contribute to education costs (legacy FAFSA metric). '
                 'Regulatory compliance requires excluding this sensitive financial information.'
             ),
-            "correct": ['exclude', 'flag'],
+            "correct": ['exclude'],
             "why": {
                 'include': (
                     'EFC is explicitly barred under 2024 Department of Education rules; its inclusion would '
                     'render the model non-compliant.'
+                ),
+                'flag': (
+                    'A review adds little here. EFC is derived from the FAFSA and has been retired, so the '
+                    'answer is already clear: keep it out of the model.'
                 ),
             },
             "consequence": {},
@@ -140,11 +144,16 @@ with app.setup:
                 'A new metric from recent FAFSA changes that replaced EFC. Recent implementation means '
                 'this data may not be available for all students in your historical dataset.'
             ),
-            "correct": ['exclude', 'flag'],
+            "correct": ['exclude'],
             "why": {
                 'include': (
                     'SAI is sensitive financial-aid data with incomplete coverage. Using it risks privacy '
                     'violations and injects missing-data bias.'
+                ),
+                'flag': (
+                    'A review adds little here. SAI is derived from the FAFSA and carries the same '
+                    'restrictions as other FAFSA data, and many past students have no SAI on record. Keep it '
+                    'out of the model.'
                 ),
             },
             "consequence": {},
@@ -157,11 +166,15 @@ with app.setup:
                 'stress indicator, but regulatory restrictions likely prohibit its use in individual-'
                 'level models.'
             ),
-            "correct": ['exclude', 'flag'],
+            "correct": ['exclude'],
             "why": {
                 'include': (
                     'Unmet Need combines multiple restricted data points. Including it would contravene '
                     'policy and amplify socioeconomic bias.'
+                ),
+                'flag': (
+                    'A review adds little here. Unmet Need is calculated from FAFSA-derived aid figures, so '
+                    'it carries the same restrictions. Keep it out of the model.'
                 ),
             },
             "consequence": {},
@@ -268,15 +281,15 @@ with app.setup:
                 'Student-provided pronoun preference collected by campus climate office. Optional field '
                 'with high missingness. Can affirm identity but is not a stable predictor of retention.'
             ),
-            "correct": ['flag'],
+            "correct": ['exclude'],
             "why": {
                 'include': (
                     'Preferred Pronouns are not predictive of persistence and risk trivializing gender '
                     'identity. Exclude or store only for awareness training, not analytics.'
                 ),
-                'exclude': (
-                    'Pronoun data lack completeness and standardization, limiting audit utility. Exclusion is'
-                    ' usually appropriate.'
+                'flag': (
+                    'Pronoun data are optional, mostly missing and not standardised, so they cannot support a'
+                    ' reliable bias audit either. Excluding them is the clearer choice.'
                 ),
             },
             "consequence": {},
@@ -329,8 +342,8 @@ with app.setup:
             "correct": ['flag'],
             "why": {
                 'include': (
-                    'Mid-Term Grades appear only for certain courses, risking departmental bias. Flag for '
-                    'quality improvement or exclude.'
+                    'Mid-term grades appear only for some courses, so students in those courses would look '
+                    'riskier than others. Flag it for data-quality improvement before the model uses it.'
                 ),
                 'exclude': (
                     'Excluding Mid-Term Grades forfeits early academic-performance insight. Could selective '
@@ -350,8 +363,8 @@ with app.setup:
             "correct": ['flag'],
             "why": {
                 'include': (
-                    'Sparse, faculty-dependent reporting could mislead the model. Flag for improvement or '
-                    'consider exclusion.'
+                    'Sparse, faculty-dependent reporting could mislead the model. Flag it so stakeholders can'
+                    ' improve reporting first.'
                 ),
                 'exclude': (
                     'You lose a proven early-alert signal. Engage stakeholders to improve reporting rather '
@@ -423,15 +436,16 @@ with app.setup:
                 'Indicates if the student is the first in their family to attend college; may reflect '
                 'differences in familiarity with college processes.'
             ),
-            "correct": ['flag'],
+            "correct": ['include'],
             "why": {
-                'include': (
-                    'Good call—first-gen status supports equity-minded outreach. Be sure to explain positive,'
-                    ' not deficit-based, interventions.'
-                ),
                 'exclude': (
                     'First-generation students often benefit from navigational support. Omitting this '
                     'variable could undermine equity goals.'
+                ),
+                'flag': (
+                    'Holding First Generation Status back delays a variable with a clear, supportive use. The'
+                    ' intervention (navigational support such as mentoring and help with college processes) '
+                    'is already known, so a review adds little.'
                 ),
             },
             "consequence": {},
@@ -463,12 +477,15 @@ with app.setup:
                 'Credit hours the student is taking after the official add/drop deadline; may reflect '
                 'adjustment to academic realities.'
             ),
-            "correct": ['flag'],
+            "correct": ['include'],
             "why": {
-                'include': 'Strong early signal of load management issues. Advisors can act quickly—solid choice.',
                 'exclude': (
                     'Course-load changes are an actionable red flag. Excluding them weakens the model’s '
                     'practical value.'
+                ),
+                'flag': (
+                    'Credit-load data comes straight from the registrar, so it is reliable, and advisors can '
+                    'act on a drop right away. Holding it for review only delays a strong early signal.'
                 ),
             },
             "consequence": {},
@@ -477,15 +494,15 @@ with app.setup:
             "task": 4,
             "title": 'Live On Campus or Commuter',
             "definition": 'Housing status affects integration into campus life and access to resources.',
-            "correct": ['flag'],
+            "correct": ['include'],
             "why": {
-                'include': (
-                    'Useful and actionable—commuters may need remote-friendly support. Ensure interventions '
-                    'respect time and travel constraints.'
-                ),
                 'exclude': (
                     'Housing status strongly predicts engagement. Excluding it may mask differences in '
                     'retention risk.'
+                ),
+                'flag': (
+                    'Housing status is reliable and the support is already clear: commuter-friendly advising,'
+                    ' hours and resources. Holding it for review delays a useful signal.'
                 ),
             },
             "consequence": {},
@@ -531,15 +548,15 @@ with app.setup:
                 'Whether the student transferred from another institution versus starting as a first-'
                 'year.'
             ),
-            "correct": ['flag'],
+            "correct": ['include'],
             "why": {
-                'include': (
-                    'Transfer students face unique credit-articulation hurdles—actionable and equity-'
-                    'relevant.'
-                ),
                 'exclude': (
                     'You dropped a key subgroup with elevated departure risk. Advisors may miss needed '
                     'support.'
+                ),
+                'flag': (
+                    'Transfer students face known credit-articulation hurdles, and the support is concrete. '
+                    'Holding the variable for review delays help for a group with elevated departure risk.'
                 ),
             },
             "consequence": {},
@@ -571,11 +588,15 @@ with app.setup:
                 'Binary flag—student devices connected to high-traffic gaming ports for ≥ 5 hours/week '
                 'during evenings.'
             ),
-            "correct": ['exclude', 'flag'],
+            "correct": ['exclude'],
             "why": {
                 'include': (
                     'Correlation to retention unproven; risk of pathologising hobby behaviour. Provide '
                     'theoretical justification or exclude.'
+                ),
+                'flag': (
+                    "There is nothing for a review to rescue: monitoring students' gaming traffic is "
+                    'intrusive surveillance with no established link to persistence. Exclude it.'
                 ),
             },
             "consequence": {},

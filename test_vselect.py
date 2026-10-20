@@ -116,6 +116,28 @@ def test_report_html_escapes_learner_text():
     assert "<script>" not in out and "&lt;script&gt;" in out
 
 
+def test_key_has_no_safe_default():
+    assert any("include" in v["correct"] for v in nb.VARIABLES.values())
+    for c in nb.CHOICES:
+        assert sum(c in v["correct"] for v in nb.VARIABLES.values()) <= 18, c
+
+
+def test_approved_key_revision():
+    approved = {
+        "firstgen": ["include"], "credits": ["include"], "housing": ["include"], "transfer": ["include"],
+        "efc": ["exclude"], "sai": ["exclude"], "unmet": ["exclude"], "pronouns": ["exclude"], "wi_fi": ["exclude"],
+    }
+    for name, correct in approved.items():
+        assert nb.VARIABLES[name]["correct"] == correct, name
+
+
+def test_why_texts_do_not_praise_wrong_choices():
+    praise = ("good call", "solid choice", "useful and actionable", "usually appropriate", "flag for quality improvement or exclude", "consider exclusion")
+    for name, v in nb.VARIABLES.items():
+        for choice, text in v["why"].items():
+            assert not any(p in text.lower() for p in praise), (name, choice)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
