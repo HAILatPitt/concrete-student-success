@@ -1101,6 +1101,17 @@ def report_html(name: str, prediction: dict, decisions: dict, reasons: dict, not
 </body></html>"""
 
 
+@app.function
+def wrapup_prompt(include_count: int, submitted: bool) -> str:
+    noun = "variable" if include_count == 1 else "variables"
+    if submitted:
+        return f"**_Your model uses the {include_count} {noun} highlighted in green._** Your choices are locked."
+    return (
+        f"**_Your model will use the {include_count} {noun} highlighted in green._** "
+        "Is this acceptable, or would you like to revise your selections?"
+    )
+
+
 @app.cell
 def _():
     import marimo as mo                           
@@ -1368,20 +1379,15 @@ def task_4(
 
 
 @app.cell(hide_code=True)
-def wrapup_summary_table(get_decisions, get_prediction, get_reasons, mo):
+def wrapup_summary_table(get_decisions, get_prediction, get_reasons, get_submitted, mo):
     mo.stop(get_prediction() is None)
-    brief_rows = brief_rows_of(get_decisions(), get_reasons())
-    include_count = sum(1 for choice in get_decisions().values() if choice == "include")
-    variable_plural = "variable" if include_count == 1 else "variables"
+    _include_count = sum(1 for choice in get_decisions().values() if choice == "include")
     mo.vstack([
         mo.md("## End-of-Scenario Wrap-Up – Variable-Selection Brief"),
-        mo.md(
-            f"**_Your model will use the {include_count} {variable_plural} highlighted in green._** "
-            "Is this acceptable, or would you like to revise your selections?"
-        ),
-        mo.Html(brief_table_html(brief_rows)),
+        mo.md(wrapup_prompt(_include_count, get_submitted())),
+        mo.Html(brief_table_html(brief_rows_of(get_decisions(), get_reasons()))),
     ])
-    return brief_rows, include_count
+    return
 
 
 @app.cell

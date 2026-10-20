@@ -144,6 +144,12 @@ def test_every_wrong_choice_has_consequence():
             assert v["consequence"].get(c, "").strip(), (name, c)
 
 
+def test_wrapup_prompt_stops_offering_revision_after_submit():
+    assert "revise" in nb.wrapup_prompt(4, submitted=False)
+    locked = nb.wrapup_prompt(1, submitted=True)
+    assert "revise" not in locked and "1 variable " in locked
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
