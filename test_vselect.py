@@ -20,14 +20,15 @@ def test_severity():
     assert nb.severity("race", "exclude") == "cautious"
 
 
-def blank_row(variable):
-    return {"variable": variable, "reason": ""}
+def test_prediction_ready_needs_text_in_both_boxes():
+    assert not nb.prediction_ready("   \n ", "race: protected")
+    assert not nb.prediction_ready("gpa", "")
+    assert nb.prediction_ready("gpa, midterms", "race")
 
 
-def test_prediction_ready_ignores_blank_rows():
-    assert not nb.prediction_ready([blank_row("  ")], [blank_row("race")])
-    assert not nb.prediction_ready([blank_row("gpa")], [])
-    assert nb.prediction_ready([blank_row(""), blank_row("gpa")], [blank_row("race")])
+def test_prediction_html_escapes_and_keeps_lines():
+    out = nb.prediction_html({"could_predict": "gpa\n<b>midterms</b>", "barred": "race & sex"})
+    assert "gpa<br>&lt;b&gt;midterms&lt;/b&gt;" in out and "race &amp; sex" in out
 
 
 def test_submit_gate():
@@ -111,7 +112,7 @@ def test_evaluation_html_names_also_accepted_choice():
 def test_report_html_escapes_learner_text():
     d = {n: "flag" for n in nb.VARIABLES}
     r = {n: "<script>x</script> & y" for n in nb.VARIABLES}
-    pred = {"could_predict": [{"variable": "<b>", "reason": ""}], "barred": []}
+    pred = {"could_predict": "<b>", "barred": "x"}
     out = nb.report_html("A&B", pred, d, r, "", ["", "", ""])
     assert "<script>" not in out and "&lt;script&gt;" in out
 

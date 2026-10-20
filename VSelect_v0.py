@@ -858,13 +858,8 @@ def severity(name: str, choice: str) -> str:
 
 
 @app.function
-def has_variable(row: dict) -> bool:
-    return bool(row.get("variable", "").strip())
-
-
-@app.function
-def prediction_ready(could_predict: list[dict], barred: list[dict]) -> bool:
-    return any(map(has_variable, could_predict)) and any(map(has_variable, barred))
+def prediction_ready(could_predict: str, barred: str) -> bool:
+    return bool(could_predict.strip()) and bool(barred.strip())
 
 
 @app.function
@@ -997,16 +992,7 @@ def card_html(card_id: str, flipped: bool) -> str:
 @app.function
 def prediction_html(prediction: dict) -> str:
     sections = [("Could predict a student stopping out", "could_predict"), ("Available, but should not be used", "barred")]
-    out = ""
-    for heading, key in sections:
-        items = "".join(
-            f"<li><b>{html.escape(row['variable'].strip())}</b>"
-            + (f" — {html.escape(row['reason'].strip())}" if row.get("reason", "").strip() else "")
-            + "</li>"
-            for row in prediction[key]
-        )
-        out += f"<h4>{heading}</h4><ul>{items}</ul>"
-    return out
+    return "".join(f"<h4>{heading}</h4><p>{paragraph_html(prediction[key])}</p>" for heading, key in sections)
 
 
 @app.function
@@ -1156,34 +1142,27 @@ def flip_cards(flip_buttons, get_flipped, mo):
 
 @app.cell
 def predict_inputs(mo):
-    def prediction_rows(reason_placeholder):
-        return mo.ui.array([
-            mo.ui.dictionary({
-                "variable": mo.ui.text(placeholder="variable…", full_width=True),
-                "reason": mo.ui.text(placeholder=reason_placeholder, full_width=True),
-            })
-            for _ in range(5)
-        ])
-
-    def rows_view(rows):
-        return mo.vstack([mo.hstack([row["variable"], row["reason"]], widths=[1, 2]) for row in rows.elements])
-
-    could_predict_rows = prediction_rows("why you think so…")
-    barred_rows = prediction_rows("which rule or concern…")
+    could_predict_box = mo.ui.text_area(
+        placeholder="e.g. first-term GPA, because early grades show who is struggling",
+        rows=6,
+        full_width=True,
+    )
+    barred_box = mo.ui.text_area(
+        placeholder="e.g. race, because it is a protected attribute",
+        rows=6,
+        full_width=True,
+    )
     lock_button = mo.ui.run_button(label="🔒 Lock my prediction", kind="success")
-    return barred_rows, could_predict_rows, lock_button, rows_view
+    return barred_box, could_predict_box, lock_button
 
 
 @app.cell
-def lock_prediction(barred_rows, could_predict_rows, lock_button, mo, set_prediction):
-    _ready = prediction_ready(could_predict_rows.value, barred_rows.value)
+def lock_prediction(barred_box, could_predict_box, lock_button, mo, set_prediction):
+    _ready = prediction_ready(could_predict_box.value, barred_box.value)
     if lock_button.value and _ready:
-        set_prediction({
-            "could_predict": [row for row in could_predict_rows.value if has_variable(row)],
-            "barred": [row for row in barred_rows.value if has_variable(row)],
-        })
+        set_prediction({"could_predict": could_predict_box.value.strip(), "barred": barred_box.value.strip()})
     lock_warning = (
-        mo.callout(mo.md("Add at least one variable to each list."), kind="warn")
+        mo.callout(mo.md("Write something in both boxes before you lock."), kind="warn")
         if lock_button.value and not _ready
         else ""
     )
@@ -1192,14 +1171,13 @@ def lock_prediction(barred_rows, could_predict_rows, lock_button, mo, set_predic
 
 @app.cell(hide_code=True)
 def predict(
-    barred_rows,
-    could_predict_rows,
+    barred_box,
+    could_predict_box,
     get_opened,
     get_prediction,
     lock_button,
     lock_warning,
     mo,
-    rows_view,
 ):
     mo.stop(not cards_ready(get_opened()), mo.md("*Open all three cards to begin.*"))
     _header = [
@@ -1214,9 +1192,9 @@ def predict(
     if get_prediction() is None:
         _output = mo.vstack(_header + [
             mo.md("**Variables that could predict a student stopping out**"),
-            rows_view(could_predict_rows),
+            could_predict_box,
             mo.md("**Variables the university probably holds but should not use (and why)**"),
-            rows_view(barred_rows),
+            barred_box,
             lock_button,
             lock_warning,
         ])
