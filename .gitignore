@@ -11,3 +11,6 @@ __marimo__/session/
 .DS_Store
 __pycache__/
 .superpowers/
+
+# marimo's export copies its own AI-assistant prompt; the page doesn't use it
+docs/CLAUDE.md
